@@ -3,11 +3,10 @@ import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import cors from "cors";
-
-const app = express();
-app.use(cors()); // ✅ Allow all origins (for development)
 dotenv.config();
 const app = express();
+app.use(cors()); // ✅ Allow all origins (for development)
+
 app.use(express.json());
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -63,4 +62,5 @@ app.post("/api/embeddings", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+
 
