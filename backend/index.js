@@ -106,7 +106,24 @@ app.post("/api/query", async (req, res) => {
     const norm = (a) => Math.sqrt(a.reduce((s, x) => s + x * x, 0));
     const cosine = (a, b) => dot(a, b) / (norm(a) * norm(b) + 1e-10);
 
-    const scored = rows.map((r) => ({ ...r, score: cosine(qVec, r.embedding) }));
+   // 3️⃣ Compute similarity
+const scored = rows.map((r) => {
+  // Parse the embedding (string or object) into an array
+  let emb = r.embedding;
+  if (typeof emb === "string") {
+    try {
+      emb = JSON.parse(emb);
+    } catch {
+      // Supabase can return as {float: [...]} if inserted that way
+      emb = emb.replace(/[{}]/g, "").split(",").map(Number);
+    }
+  } else if (emb?.float) {
+    emb = emb.float; // Cohere’s structure
+  }
+
+  return { ...r, score: cosine(qVec, emb) };
+});
+
     scored.sort((a, b) => b.score - a.score);
     const top = scored.slice(0, 6);
 
@@ -162,12 +179,3 @@ app.post("/api/query", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
-
-
-
-
-
-
-
-
-
