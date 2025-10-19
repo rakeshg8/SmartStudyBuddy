@@ -150,6 +150,7 @@ const scored = rows.map((r) => {
     });
 
     const llmJson = await llmResp.json();
+    console.log("OpenRouter LLM response:", llmJson);
     const answer =
       llmJson.choices?.[0]?.message?.content || llmJson.choices?.[0]?.text;
 
@@ -180,4 +181,5 @@ const scored = rows.map((r) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+
 
