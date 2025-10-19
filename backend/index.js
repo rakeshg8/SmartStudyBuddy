@@ -40,7 +40,8 @@ app.post("/api/embeddings", async (req, res) => {
     const embJson = await embResp.json();
     console.log("Cohere response JSON:", embJson);
 
-    const embedding = embJson.embeddings?.[0]?.embedding;
+   const embedding = embJson.embeddings?.float?.[0];
+
 
     if (!embedding) {
       console.error("Cohere embedding error:", embJson);
@@ -71,6 +72,7 @@ app.post("/api/embeddings", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+
 
 
 
