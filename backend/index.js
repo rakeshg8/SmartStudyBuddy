@@ -141,7 +141,7 @@ const scored = rows.map((r) => {
     const prompt = `You are an intelligent study assistant. Use the context below to answer the question accurately and cite relevant pages.\n\nContext:\n${contextText}\n\nQuestion: ${question}\n\nAnswer:`;
 
     // 5️⃣ Call LLM via OpenRouter
-    const llmResp = await fetch("https://api.openrouter.ai/v1/chat/completions", {
+    const llmResp = await fetch("http://api.openrouter.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
