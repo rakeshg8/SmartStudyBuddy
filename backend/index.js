@@ -30,8 +30,9 @@ app.post("/api/embeddings", async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "embed-english-v3.0", // latest model
-        texts: [chunk_text], // ✅ Must be an array of strings
+        model: "embed-english-v3.0", // ✅ correct model
+        texts: [chunk_text],
+        input_type: "search_document", // ✅ required for v3.0
       }),
     });
 
@@ -70,6 +71,7 @@ app.post("/api/embeddings", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+
 
 
 
