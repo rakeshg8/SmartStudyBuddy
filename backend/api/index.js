@@ -5,7 +5,12 @@ import dotenv from "dotenv";
 import cors from "cors";
 dotenv.config();
 const app = express();
-app.use(cors()); // ✅ Allow all origins (for development)
+app.use(cors({
+  origin: ["http://localhost:5173", "https://smart-study-buddy-six.vercel.app"],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
 
 app.use(express.json());
 
@@ -179,7 +184,8 @@ const scored = rows.map((r) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+export default app;
+
+
 
 
