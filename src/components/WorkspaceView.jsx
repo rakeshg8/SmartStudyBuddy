@@ -28,84 +28,146 @@ export default function WorkspaceView() {
     return () => stopTimerAndSave();
     // eslint-disable-next-line
   }, [id]);
+// --- replace fetchWorkspace, stopTimerAndSave, handleFileInput with these ---
 
-  async function fetchWorkspace() {
-    setLoading(true);
-    const { data, error } = await supabase.from('workspaces').select('*').eq('id', id).single();
-    if (error) {
-      console.error(error);
-      setLoading(false);
+async function fetchWorkspace() {
+  setLoading(true);
+  const { data, error } = await supabase
+    .from('workspaces')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (error) {
+    console.error('fetchWorkspace error', error);
+    setLoading(false);
+    return null; // return null on error
+  }
+  setWorkspace(data);
+  setLoading(false);
+  return data; // return workspace so callers can await it
+}
+
+// Timer functions
+function startTimer() {
+  startTimeRef.current = Date.now();
+  timerRef.current = setInterval(() => {
+    // can update UI every minute if you want
+  }, 60 * 1000);
+}
+async function stopTimerAndSave() {
+  clearInterval(timerRef.current);
+  const elapsed = Math.floor((Date.now() - (startTimeRef.current || Date.now())) / 1000);
+  if (!elapsed || elapsed <= 0) return;
+
+  // ensure workspace is loaded
+  let ws = workspace;
+  if (!ws) {
+    ws = await fetchWorkspace();
+    if (!ws) return; // can't proceed
+  }
+
+  // ownership check (prevent RLS violation)
+  if (!user || ws.user_id !== user.id) {
+    console.warn('Not inserting progress — current user is not workspace owner.');
+    return;
+  }
+
+  // Prefer RPC (requires you to have this function created server-side as SECURITY DEFINER).
+  try {
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('increment_progress_time', {
+        p_workspace_id: id,
+        p_seconds: elapsed
+      });
+    if (rpcError) {
+      // If rpc fails, fall back to direct insert (ownership already validated)
+      console.warn('increment_progress_time rpc failed, falling back to client insert', rpcError);
+      await supabase.from('progress').insert({
+        workspace_id: id,
+        time_spent_seconds: elapsed,
+        last_active: new Date().toISOString()
+      }).throwOnError();
+    } else {
+      // rpc succeeded — nothing else to do
+    }
+  } catch (err) {
+    // Final fallback insert attempt (should not reach here normally)
+    console.error('progress insert fallback error', err);
+    try {
+      await supabase.from('progress').insert({
+        workspace_id: id,
+        time_spent_seconds: elapsed,
+        last_active: new Date().toISOString()
+      });
+    } catch (insertErr) {
+      console.error('final insert failed', insertErr);
+    }
+  }
+}
+
+async function handleFileInput(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Ensure workspace is loaded and owned
+  let ws = workspace;
+  if (!ws) {
+    ws = await fetchWorkspace();
+    if (!ws) {
+      alert('Workspace could not be loaded. Try again.');
       return;
     }
-    setWorkspace(data);
-    setLoading(false);
+  }
+  if (!user || ws.user_id !== user.id) {
+    alert('You cannot upload files to a workspace you do not own.');
+    return;
   }
 
-  // Timer functions
-  function startTimer() {
-    startTimeRef.current = Date.now();
-    timerRef.current = setInterval(() => {
-      // can update UI every minute if you want
-    }, 60 * 1000);
-  }
-  async function stopTimerAndSave() {
-    clearInterval(timerRef.current);
-    const elapsed = Math.floor((Date.now() - (startTimeRef.current || Date.now())) / 1000);
-    if (!elapsed || elapsed <= 0) return;
-    // upsert into progress table (increment time)
-    const { error } = await supabase.rpc('increment_progress_time', {
-      p_workspace_id: id,
-      p_seconds: elapsed
-    }).catch(e => console.error(e));
-    // If you don't have rpc, use simple insert
-    await supabase.from('progress').insert({
-      workspace_id: id,
-      time_spent_seconds: elapsed,
-      last_active: new Date().toISOString()
-    }).catch(e => console.error(e));
-  }
+  // 1. upload raw file to Supabase storage
+  const ext = file.name.split('.').pop();
+  const path = `${id}/${Date.now()}.${ext}`;
+  const { data: upData, error: upErr } = await supabase.storage.from('documents').upload(path, file);
+  if (upErr) { alert(upErr.message); return; }
 
-  // PDF upload & processing (client-side text extraction + upload file to Supabase storage + call embeddings API per chunk)
-  async function handleFileInput(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    // 1. upload raw file to Supabase storage
-    const ext = file.name.split('.').pop();
-    const path = `${id}/${Date.now()}.${ext}`;
-    const { data: upData, error: upErr } = await supabase.storage.from('documents').upload(path, file);
-    if (upErr) { alert(upErr.message); return; }
-    const publicUrl = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl;
+  const publicUrl = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl;
 
-    // 2. create document record
-    const { data: doc, error: docErr } = await supabase.from('documents').insert({
-      workspace_id: id,
-      file_url: publicUrl,
-      filename: file.name
-    }).select().single();
-    if (docErr) { console.error(docErr); alert(docErr.message); return; }
+  // 2. create document record (ownership already checked)
+  const { data: doc, error: docErr } = await supabase.from('documents').insert({
+    workspace_id: id,
+    file_url: publicUrl,
+    filename: file.name
+  }).select().single();
 
-    // 3. extract text pages and chunk them, then call serverless /api/embeddings for each chunk
-    const pages = await extractTextFromPDF(file); // returns [{pageNumber, text}]
-    // small chunk size to reduce prompt cost
-    for (const p of pages) {
-      const chunks = chunkText(p.text, 200);
-      for (const chunk of chunks) {
-        // call server endpoint to create embedding and store vector
-        await fetch('/api/embeddings', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({
-            workspace_id: id,
-            document_id: doc.id,
-            page_number: p.pageNumber,
-            chunk_text: chunk
-          })
-        }).then(r => r.json()).catch(err => console.error('embedding error', err));
-      }
+  if (docErr) { console.error('documents insert error', docErr); alert(docErr.message); return; }
+
+  // 3. extract text pages and chunk them, then call serverless /api/embeddings for each chunk
+
+  const pages = await extractTextFromPDF(file); // returns [{pageNumber, text}]
+  let totalChunks = 0;
+let processedChunks = 0;
+for (const p of pages) totalChunks += chunkText(p.text, 200).length;
+  for (const p of pages) {
+    const chunks = chunkText(p.text, 200);
+    for (const chunk of chunks) {
+      // call server endpoint to create embedding and store vector
+      await fetch('https://smart-study-buddy-six.vercel.app/api/embeddings', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          workspace_id: id,
+          document_id: doc.id,
+          page_number: p.pageNumber,
+          chunk_text: chunk
+        })
+      }).then(r => r.json()).catch(err => console.error('embedding error', err));
+       processedChunks++;
+    console.log(`Progress: ${Math.round((processedChunks / totalChunks) * 100)}%`);
     }
-
-    alert('File uploaded and processed (embeddings created).');
   }
+
+  alert('File uploaded and processed (embeddings created).');
+}
+
 
   // Chat ask (calls /api/query)
   async function askQuestion() {
@@ -114,7 +176,7 @@ export default function WorkspaceView() {
     setMessages(prev => [...prev, uMsg]);
     setQuery('');
     // call server
-    const res = await fetch('/api/query', {
+    const res = await fetch('https://smart-study-buddy-six.vercel.app/api/query', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ workspace_id: id, question: uMsg.text })
@@ -271,7 +333,7 @@ function MotivationMini({ workspaceId }) {
   const [reply, setReply] = useState(null);
   async function sendMotivation() {
     if (!input.trim()) return;
-    const res = await fetch('/api/query', {
+    const res = await fetch('https://smart-study-buddy-six.vercel.app/api/query', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ workspace_id: workspaceId, question: input, mode: 'motivate' })
