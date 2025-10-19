@@ -29,7 +29,7 @@ export default function PDFUploader({ workspaceId }) {
       const chunks = chunkText(p.text, 200); // smaller chunk for LLM context
       for (const c of chunks) {
         // call your serverless /api/embeddings to get embedding & store it
-        await fetch('/api/embeddings', {
+        await fetch('https://smart-study-buddy-six.vercel.app/api/embeddings', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({

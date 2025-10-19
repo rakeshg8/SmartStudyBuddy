@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
       setUser(session?.user ?? null);
       setLoading(false);
     });
-
+    
     // ✅ Get current session once
     (async () => {
       const { data } = await supabase.auth.getSession();

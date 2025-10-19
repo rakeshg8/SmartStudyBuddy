@@ -1,76 +1,191 @@
-import React from "react";
+import React, { useContext, useState } from "react";
 import { Link } from "react-router-dom";
-
+import { AuthContext } from "../context/AuthContext";
+import { FaUserCircle } from "react-icons/fa";
 export default function Dashboard() {
-  return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <header className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-blue-600">Smart Study Buddy</h1>
-        <nav className="space-x-4">
-          <Link to="/" className="text-gray-700 hover:text-blue-600">
-            Home
-          </Link>
-          <Link to="/workspaces" className="text-gray-700 hover:text-blue-600">
-            My Workspaces
-          </Link>
-          <Link to="/stress-free" className="text-gray-700 hover:text-blue-600">
-            Stress-Free Mode
-          </Link>
-        </nav>
+  const { user, signOut } = useContext(AuthContext);
+  const [open, setOpen] = useState(false);
+    const [hoveredCard, setHoveredCard] = useState(null);
+return (
+   <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8 fixed inset-0 overflow-auto">
+      {/* Header */}
+      <header className="flex justify-between items-center mb-10 border-b border-gray-700 pb-4 relative">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+          Smart Study Buddy
+        </h1>
+
+        {/* Nav Links + Profile */}
+        <div className="flex items-center gap-6">
+          <nav className="space-x-6">
+            <Link to="/" className="text-gray-400 hover:text-blue-400 transition-colors">
+              Home
+            </Link>
+            <Link to="/workspaces" className="text-gray-400 hover:text-blue-400 transition-colors">
+              My Workspaces
+            </Link>
+            <Link to="/stress-free" className="text-gray-400 hover:text-blue-400 transition-colors">
+              Stress-Free Mode
+            </Link>
+          </nav>
+
+          {/* Profile Icon */}
+          <div className="relative">
+            <button
+              onClick={() => setOpen(!open)}
+              onBlur={() => setTimeout(() => setOpen(false), 150)}
+              className="focus:outline-none"
+            >
+              <FaUserCircle className="text-3xl text-gray-300 hover:text-blue-400 transition-colors" />
+            </button>
+
+            {open && (
+              <div className="absolute right-0 mt-3 w-44 bg-gray-800 rounded-xl border border-gray-700 shadow-lg py-2 z-50">
+                <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
+                  {user?.email}
+                </div>
+                <button
+                  onClick={signOut}
+                  className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </header>
 
-      <main className="bg-white shadow-md rounded-lg p-8">
-        <h2 className="text-2xl font-semibold mb-4">Welcome Back 👋</h2>
-        <p className="text-gray-600 mb-6">
-          Upload your study materials, manage your subjects, and get AI-powered
-          help with understanding concepts, tracking progress, and staying
-          motivated.
+      {/* Main */}
+      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8">
+        <h2 className="text-2xl font-semibold mb-4 text-white">Welcome Back 👋</h2>
+        <p className="text-gray-400 mb-10">
+          Upload your study materials, manage your subjects, and get AI-powered help with understanding concepts, tracking progress, and staying motivated.
         </p>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-blue-50 p-6 rounded-lg shadow hover:shadow-md">
-            <h3 className="text-lg font-semibold mb-2">📚 Study Workspace</h3>
-            <p className="text-sm text-gray-600 mb-3">
-              Create or open subject-based workspaces for personalized
-              assistance.
-            </p>
-            <Link
-              to="/workspaces"
-              className="text-blue-600 font-semibold hover:underline"
-            >
-              Open Workspace →
-            </Link>
+        {/* Feature Cards Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Quick Study */}
+          <div
+            className="group relative"
+            onMouseEnter={() => setHoveredCard(0)}
+            onMouseLeave={() => setHoveredCard(null)}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
+            <div className="relative h-full bg-gradient-to-br from-pink-600/90 to-rose-600/90 backdrop-blur-sm p-6 rounded-2xl border border-pink-500/30 hover:border-pink-400/50 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 flex flex-col min-h-[240px]">
+              <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                <span
+                  className={`text-3xl transition-transform duration-300 ${hoveredCard === 0 ? "scale-125 rotate-12" : ""}`}
+                >
+                  ⚡
+                </span>
+                Quick Study
+              </h3>
+              <p className="text-pink-50 text-sm mb-6 leading-relaxed flex-1">
+                Upload a PDF and get instant AI assistance without creating a workspace.
+              </p>
+              <Link
+                to="/quick-study"
+                className="inline-flex items-center gap-2 text-white font-bold hover:gap-4 transition-all"
+              >
+                Start Now <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+            </div>
           </div>
 
-          <div className="bg-green-50 p-6 rounded-lg shadow hover:shadow-md">
-            <h3 className="text-lg font-semibold mb-2">🧠 Exam Mode</h3>
-            <p className="text-sm text-gray-600 mb-3">
-              Practice questions generated by AI based on your uploaded notes
-              and PDFs.
-            </p>
-            <Link
-              to="/exam-mode"
-              className="text-green-600 font-semibold hover:underline"
-            >
-              Try Exam Mode →
-            </Link>
+          {/* Study Workspace */}
+          <div
+            className="group relative"
+            onMouseEnter={() => setHoveredCard(1)}
+            onMouseLeave={() => setHoveredCard(null)}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
+            <div className="relative h-full bg-gradient-to-br from-blue-600/90 to-cyan-600/90 backdrop-blur-sm p-6 rounded-2xl border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 flex flex-col min-h-[240px]">
+              <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                <span
+                  className={`text-3xl transition-transform duration-300 ${hoveredCard === 1 ? "scale-125 rotate-12" : ""}`}
+                >
+                  📚
+                </span>
+                Study Workspace
+              </h3>
+              <p className="text-blue-50 text-sm mb-6 leading-relaxed flex-1">
+                Create or open subject-based workspaces for personalized assistance.
+              </p>
+              <Link
+                to="/workspaces"
+                className="inline-flex items-center gap-2 text-white font-bold hover:gap-4 transition-all"
+              >
+                Open Workspace <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+            </div>
           </div>
 
-          <div className="bg-yellow-50 p-6 rounded-lg shadow hover:shadow-md">
-            <h3 className="text-lg font-semibold mb-2">💬 Stress-Free Mode</h3>
-            <p className="text-sm text-gray-600 mb-3">
-              Talk to AI for motivation or stress relief — stay positive while
-              studying.
-            </p>
-            <Link
-              to="/stress-free"
-              className="text-yellow-600 font-semibold hover:underline"
-            >
-              Launch →
-            </Link>
+          {/* Exam Mode */}
+          <div
+            className="group relative"
+            onMouseEnter={() => setHoveredCard(2)}
+            onMouseLeave={() => setHoveredCard(null)}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
+            <div className="relative h-full bg-gradient-to-br from-green-600/90 to-emerald-600/90 backdrop-blur-sm p-6 rounded-2xl border border-green-500/30 hover:border-green-400/50 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 flex flex-col min-h-[240px]">
+              <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                <span
+                  className={`text-3xl transition-transform duration-300 ${hoveredCard === 2 ? "scale-125 rotate-12" : ""}`}
+                >
+                  🧠
+                </span>
+                Exam Mode
+              </h3>
+              <p className="text-green-50 text-sm mb-6 leading-relaxed flex-1">
+                Practice questions generated by AI based on your uploaded notes and PDFs.
+              </p>
+              <Link
+                to="/exam-mode"
+                className="inline-flex items-center gap-2 text-white font-bold hover:gap-4 transition-all"
+              >
+                Try Exam Mode <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Stress-Free Mode */}
+          <div
+            className="group relative"
+            onMouseEnter={() => setHoveredCard(3)}
+            onMouseLeave={() => setHoveredCard(null)}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-all duration-300"></div>
+            <div className="relative h-full bg-gradient-to-br from-yellow-600/90 to-orange-600/90 backdrop-blur-sm p-6 rounded-2xl border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 flex flex-col min-h-[240px]">
+              <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                <span
+                  className={`text-3xl transition-transform duration-300 ${hoveredCard === 3 ? "scale-125 rotate-12" : ""}`}
+                >
+                  💬
+                </span>
+                Stress-Free Mode
+              </h3>
+              <p className="text-yellow-50 text-sm mb-6 leading-relaxed flex-1">
+                Talk to AI for motivation or stress relief — stay positive while studying.
+              </p>
+              <Link
+                to="/stress-free"
+                className="inline-flex items-center gap-2 text-white font-bold hover:gap-4 transition-all"
+              >
+                Launch <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+            </div>
           </div>
         </div>
       </main>
+      {/* Footer  */}
+{/* Footer - sticky version */}
+<div className="mt-4 py-2 text-center bg-gray-800 text-gray-200 rounded-lg sticky bottom-0">
+  <p className="text-sm italic">
+    "Push yourself, because no one else will do it for you. Every small step counts! 📚✨"
+  </p>
+</div>
+
+
     </div>
   );
 }

@@ -216,9 +216,17 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
               <div className="chat-window mb-4 space-y-3" style={{ maxHeight: 420, overflow: 'auto' }}>
                 {messages.map((m, i) => (
                   <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
-                    <div className={`inline-block p-3 rounded ${m.role === 'user' ? 'bg-blue-50' : 'bg-gray-100'}`}>
-                      <div dangerouslySetInnerHTML={{ __html: m.text.replace(/\n/g, '<br/>') }} />
-                    </div>
+                    <div
+  className={`inline-block p-3 rounded text-gray-900 ${
+    m.role === 'user' ? 'bg-white border border-blue-200' : 'bg-white border border-gray-200'
+  }`}
+>
+  <div
+    className="text-gray-800"
+    dangerouslySetInnerHTML={{ __html: m.text.replace(/\n/g, '<br/>') }}
+  />
+</div>
+
                     {m.sources && <div className="text-xs text-gray-500 mt-1">Sources: {m.sources.map(s => `Page ${s.page}`).join(', ')}</div>}
                   </div>
                 ))}
@@ -236,7 +244,7 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
               <h3 className="font-semibold mb-2">Exam Mode</h3>
               <p className="text-sm text-gray-600 mb-3">Generate timed quiz from this workspace (use the "Generate Quiz" button).</p>
               <button className="btn" onClick={async () => {
-                const resp = await fetch('/api/query', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ workspace_id: id, question: '::generate_quiz::', mode: 'quiz' }) });
+                const resp = await fetch('https://smart-study-buddy-six.vercel.app/api/query', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ workspace_id: id, question: '::generate_quiz::', mode: 'quiz' }) });
                 const j = await resp.json();
                 alert('Quiz generated in chat. Open Chat tab to view questions.');
                 setActiveTab('chat');
@@ -250,7 +258,7 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
               <h3 className="font-semibold mb-2">Smart Notes Summarizer</h3>
               <p className="text-sm text-gray-600 mb-3">Summarize uploaded notes or OCR images.</p>
               <button className="btn" onClick={async () => {
-                const resp = await fetch('/api/query', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ workspace_id: id, question: '::summarize_notes::', mode: 'summarize' }) });
+                const resp = await fetch('https://smart-study-buddy-six.vercel.app/api/query', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ workspace_id: id, question: '::summarize_notes::', mode: 'summarize' }) });
                 const j = await resp.json();
                 setActiveTab('chat'); // show summary in chat
                 setMessages(prev => [...prev, { role:'assistant', text: j.answer }]);
@@ -263,7 +271,7 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
               <h3 className="font-semibold mb-2">Concept Evolution Tracker</h3>
               <p className="text-sm text-gray-600">Compare how your understanding changed as you added documents.</p>
               <button className="btn" onClick={async () => {
-                const resp = await fetch('/api/query', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ workspace_id: id, question: '::concept_evolution::', mode: 'concept' }) });
+                const resp = await fetch('https://smart-study-buddy-six.vercel.app/api/query', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ workspace_id: id, question: '::concept_evolution::', mode: 'concept' }) });
                 const j = await resp.json();
                 setActiveTab('chat');
                 setMessages(prev => [...prev, { role:'assistant', text: j.answer }]);
@@ -344,11 +352,21 @@ function MotivationMini({ workspaceId }) {
   }
   return (
     <div>
-      {reply && <div className="mb-2 p-2 bg-green-50 rounded text-sm">{reply}</div>}
-      <div className="flex gap-2">
-        <input value={input} onChange={e=>setInput(e.target.value)} className="flex-1 p-2 border rounded" placeholder="How are you feeling?" />
-        <button className="btn" onClick={sendMotivation}>Talk</button>
-      </div>
+  {reply && (
+    <div className="mb-2 p-2 bg-green-100 text-gray-900 rounded text-sm">
+      {reply}
     </div>
+  )}
+  <div className="flex gap-2">
+    <input
+      value={input}
+      onChange={e => setInput(e.target.value)}
+      className="flex-1 p-2 border rounded"
+      placeholder="How are you feeling?"
+    />
+    <button className="btn" onClick={sendMotivation}>Talk</button>
+  </div>
+</div>
+
   );
 }

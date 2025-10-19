@@ -7,30 +7,7 @@ import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import WorkspaceList from './components/WorkspaceList';
 import WorkspaceView from './components/WorkspaceView';
-function Navbar() {
-  return (
-    <nav className="bg-white shadow p-4 flex justify-between items-center">
-      <div className="flex items-center gap-4">
-        <Link to="/" className="text-xl font-bold">Smart Study Buddy</Link>
-        <Link to="/workspaces" className="text-sm text-gray-600">Workspaces</Link>
-      </div>
-      <div>
-        <AuthContext.Consumer>
-          {({ user, signOut }) => user ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-700">{user.email}</span>
-              <button className="btn" onClick={() => signOut()}>Sign out</button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Link to="/login" className="btn">Login</Link>
-            </div>
-          )}
-        </AuthContext.Consumer>
-      </div>
-    </nav>
-  );
-}
+
 
 function ProtectedRoute({ children }) {
   const { user, loading } = React.useContext(AuthContext);
@@ -41,7 +18,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Navbar />
+      
         <main className="p-6">
           <Routes>
             <Route path="/login" element={<Login />} />

@@ -1,6 +1,11 @@
-// src/api/embeddings.js
+import express from "express";
 import fetch from "node-fetch";
 import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+
+dotenv.config();
+const app = express();
+app.use(express.json());
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -8,14 +13,11 @@ const COHERE_API_KEY = process.env.COHERE_API_KEY;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
-
+app.post("/api/embeddings", async (req, res) => {
   const { workspace_id, document_id, page_number, chunk_text } = req.body;
   if (!chunk_text) return res.status(400).json({ error: "Missing chunk_text" });
 
   try {
-    // 1️⃣ Get embeddings from Cohere
     const embResp = await fetch("https://api.cohere.ai/v1/embed", {
       method: "POST",
       headers: {
@@ -23,7 +25,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "embed-english-v3.0", // best for text/doc understanding
+        model: "embed-english-v3.0",
         texts: [chunk_text],
       }),
     });
@@ -36,7 +38,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Failed to generate embedding" });
     }
 
-    // 2️⃣ Store in Supabase
     const { error } = await supabase.from("embeddings").insert({
       document_id,
       workspace_id,
@@ -46,9 +47,11 @@ export default async function handler(req, res) {
     });
 
     if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json({ ok: true });
+    res.json({ ok: true });
   } catch (err) {
-    console.error("Embedding handler failed:", err);
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
-}
+});
+
+app.listen(5000, () => console.log("✅ API running on http://localhost:5000"));
