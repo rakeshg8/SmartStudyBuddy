@@ -68,6 +68,7 @@ app.post("/api/embeddings", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+console.log("OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
 
 // ============ Query API ============
 app.post("/api/query", async (req, res) => {
@@ -179,3 +180,4 @@ const scored = rows.map((r) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+
