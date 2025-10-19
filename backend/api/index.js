@@ -184,8 +184,7 @@ const scored = rows.map((r) => {
   }
 });
 
+
+// ✅ Vercel export (no app.listen)
 export default app;
-
-
-
 
