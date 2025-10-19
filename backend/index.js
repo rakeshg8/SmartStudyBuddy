@@ -148,7 +148,7 @@ const scored = rows.map((r) => {
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "mistral-7b-instruct",
+        model: "mistralai/mistral-7b-instruct:free",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 700,
       }),
