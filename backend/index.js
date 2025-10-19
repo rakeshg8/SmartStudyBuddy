@@ -12,7 +12,7 @@ app.use(express.json());
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const COHERE_API_KEY = process.env.COHERE_API_KEY;
-
+const OPENROUTER_API_KEY=process.env.OPENROUTER_API_KEY
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 app.get("/", (req, res) => res.send("Smart Study Buddy API running ✅"));
@@ -181,5 +181,6 @@ const scored = rows.map((r) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+
 
 
