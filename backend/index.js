@@ -69,9 +69,100 @@ app.post("/api/embeddings", async (req, res) => {
   }
 });
 
+// ============ Query API ============
+app.post("/api/query", async (req, res) => {
+  const { workspace_id, question } = req.body;
+
+  try {
+    // 1️⃣ Create embedding for the question using Cohere
+    const embResp = await fetch("https://api.cohere.ai/v1/embed", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${COHERE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "embed-english-v3.0",
+        texts: [question],
+        input_type: "search_query",
+      }),
+    });
+
+    const embJson = await embResp.json();
+    const qVec = embJson.embeddings?.float?.[0] || embJson.embeddings?.[0];
+    if (!qVec) throw new Error("Failed to generate question embedding");
+
+    // 2️⃣ Fetch embeddings from Supabase
+    const { data: rows, error: fetchErr } = await supabase
+      .from("embeddings")
+      .select("id, chunk_text, page_number, embedding")
+      .eq("workspace_id", workspace_id);
+
+    if (fetchErr) throw new Error(fetchErr.message);
+    if (!rows?.length) throw new Error("No embeddings found for workspace");
+
+    // 3️⃣ Compute cosine similarity
+    const dot = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
+    const norm = (a) => Math.sqrt(a.reduce((s, x) => s + x * x, 0));
+    const cosine = (a, b) => dot(a, b) / (norm(a) * norm(b) + 1e-10);
+
+    const scored = rows.map((r) => ({ ...r, score: cosine(qVec, r.embedding) }));
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, 6);
+
+    // 4️⃣ Build RAG prompt
+    const contextText = top
+      .map((t) => `Page ${t.page_number}: ${t.chunk_text}`)
+      .join("\n---\n");
+
+    const prompt = `You are an intelligent study assistant. Use the context below to answer the question accurately and cite relevant pages.\n\nContext:\n${contextText}\n\nQuestion: ${question}\n\nAnswer:`;
+
+    // 5️⃣ Call LLM via OpenRouter
+    const llmResp = await fetch("https://api.openrouter.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "mistral-7b-instruct",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 700,
+      }),
+    });
+
+    const llmJson = await llmResp.json();
+    const answer =
+      llmJson.choices?.[0]?.message?.content || llmJson.choices?.[0]?.text;
+
+    // 6️⃣ Save chat history
+    await supabase.from("chats").insert({
+      workspace_id,
+      question,
+      answer,
+      sources: top.map((t) => ({
+        page: t.page_number,
+        excerpt: t.chunk_text.slice(0, 200),
+      })),
+    });
+
+    res.json({
+      answer,
+      sources: top.map((t) => ({
+        page: t.page_number,
+        excerpt: t.chunk_text.slice(0, 200),
+        score: t.score,
+      })),
+    });
+  } catch (err) {
+    console.error("Query error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Backend running on port ${PORT}`));
+
 
 
 
