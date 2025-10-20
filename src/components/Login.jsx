@@ -69,9 +69,10 @@ export default function Login() {
         </button>
 
         <p className="text-center text-gray-500 mt-6 text-sm">
-          Don't have an account? <span className="text-indigo-400 cursor-pointer">Sign Up</span>
+          Don't have an account? <span onClick={() => nav('/signup')} className="text-indigo-400 cursor-pointer">Sign Up</span>
         </p>
       </div>
     </div>
   );
 }
+
