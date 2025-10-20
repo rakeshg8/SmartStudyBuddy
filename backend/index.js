@@ -6,7 +6,9 @@ import cors from "cors";
 dotenv.config();
 const app = express();
 app.use(cors({
-  origin: ["http://localhost:5173", "https://smart-study-buddy-six.vercel.app","https://smart-study-buddy-yt58.vercel.app"],
+  origin: [ "http://localhost:5173",
+    "https://smart-study-buddy-six.vercel.app",
+    "https://smart-study-buddy-yt58.vercel.app" ],
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
