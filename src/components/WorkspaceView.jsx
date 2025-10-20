@@ -16,6 +16,9 @@ export default function WorkspaceView() {
   const [activeTab, setActiveTab] = useState('chat'); // chat | exam | notes | concept
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+const [selectedDoc, setSelectedDoc] = useState(null);
+
 
   useEffect(() => {
     if (!id) return;
@@ -108,7 +111,7 @@ async function stopTimerAndSave() {
 async function handleFileInput(e) {
   const file = e.target.files[0];
   if (!file) return;
-
+setUploadProgress(10); // show start progress
   // Ensure workspace is loaded and owned
   let ws = workspace;
   if (!ws) {
@@ -126,11 +129,12 @@ async function handleFileInput(e) {
   // 1. upload raw file to Supabase storage
   const ext = file.name.split('.').pop();
   const path = `${id}/${Date.now()}.${ext}`;
+    setUploadProgress(30);
   const { data: upData, error: upErr } = await supabase.storage.from('documents').upload(path, file);
   if (upErr) { alert(upErr.message); return; }
 
   const publicUrl = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl;
-
+  setUploadProgress(50);
   // 2. create document record (ownership already checked)
   const { data: doc, error: docErr } = await supabase.from('documents').insert({
     workspace_id: id,
@@ -139,7 +143,7 @@ async function handleFileInput(e) {
   }).select().single();
 
   if (docErr) { console.error('documents insert error', docErr); alert(docErr.message); return; }
-
+  setUploadProgress(70);
   // 3. extract text pages and chunk them, then call serverless /api/embeddings for each chunk
 
   const pages = await extractTextFromPDF(file); // returns [{pageNumber, text}]
@@ -164,7 +168,8 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
     console.log(`Progress: ${Math.round((processedChunks / totalChunks) * 100)}%`);
     }
   }
-
+  setUploadProgress(100);
+  setTimeout(() => setUploadProgress(0), 2000);
   alert('File uploaded and processed (embeddings created).');
 }
 
@@ -190,18 +195,29 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
   if (!workspace) return <div>Workspace not found.</div>;
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex justify-between items-start gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 py-10 px-6 flex justify-center items-start">
+  <div className="w-full max-w-6xl">
+
+      <div className="flex justify-between items-start gap-4 bg-[#0f1628]/70 p-5 rounded-2xl border border-gray-800 shadow-md mb-6">
         <div>
-          <h2 className="text-2xl font-semibold">{workspace.title}</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">{workspace.title}</h2>
           <p className="text-sm text-gray-600">{workspace.description}</p>
         </div>
         <div className="text-xs text-gray-500">Workspace ID: {workspace.id}</div>
       </div>
 
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 p-4 border rounded">
-          <div className="mb-4 flex gap-2">
+        <div className="md:col-span-2 p-6 bg-[#0e1629]/80 backdrop-blur-lg rounded-2xl border border-gray-800 shadow-xl">
+          {uploadProgress > 0 && (
+  <div className="w-full bg-gray-200 rounded mb-3 h-3 overflow-hidden">
+    <div
+      className="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded transition-all duration-300"
+      style={{ width: `${uploadProgress}%` }}
+    />
+  </div>
+)}
+
+          <div className="mb-6 flex flex-wrap gap-3 justify-center">
             <label className="btn" htmlFor="fileInput">Upload PDF</label>
             <input id="fileInput" type="file" accept="application/pdf" onChange={handleFileInput} className="hidden" />
             <button className="btn" onClick={() => setActiveTab('chat')}>Chat</button>
@@ -209,6 +225,25 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
             <button className="btn-ghost" onClick={() => setActiveTab('notes')}>Notes Summarizer</button>
             <button className="btn-ghost" onClick={() => setActiveTab('concept')}>Concept Tracker</button>
           </div>
+{selectedDoc && (
+  <div className="mb-4 border rounded overflow-hidden relative">
+    {/* Close button */}
+    <button
+      onClick={() => setSelectedDoc(null)}
+      className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 text-sm rounded hover:bg-red-600 transition"
+    >
+      ✕ Close PDF
+    </button>
+
+    {/* PDF viewer */}
+    <iframe
+      src={selectedDoc.file_url}
+      title="PDF Viewer"
+      className="w-full h-[500px] border-none"
+    />
+  </div>
+)}
+
 
           {/* Tabs */}
           {activeTab === 'chat' && (
@@ -217,7 +252,7 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
                 {messages.map((m, i) => (
                   <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
                     <div
-  className={`inline-block p-3 rounded text-gray-900 ${
+  className={`inline-block p-3 rounded-xl shadow-sm text-gray-900 ${
     m.role === 'user' ? 'bg-white border border-blue-200' : 'bg-white border border-gray-200'
   }`}
 >
@@ -280,13 +315,13 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
           )}
         </div>
 
-        <aside className="p-4 border rounded">
+        <aside className="p-6 bg-[#10172b]/80 backdrop-blur-lg rounded-2xl border border-gray-800 shadow-lg">
           <h4 className="font-semibold">Workspace Summary</h4>
           <p className="text-sm text-gray-600 mb-3">Uploaded documents and progress will appear here.</p>
 
           <div className="mb-4">
             <h5 className="text-sm font-medium">Documents</h5>
-            <DocumentList workspaceId={id} />
+            <DocumentList workspaceId={id} setSelectedDoc={setSelectedDoc} selectedDoc={selectedDoc} />
           </div>
 
           <div className="mb-4">
@@ -300,13 +335,14 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
           </div>
         </aside>
       </div>
+      </div>
     </div>
   );
 }
 
 /* Helper components (lightweight inline) */
 
-function DocumentList({ workspaceId }) {
+function DocumentList({ workspaceId, setSelectedDoc, selectedDoc }) {
   const [docs, setDocs] = useState([]);
   useEffect(() => { fetchDocs(); }, [workspaceId]);
   async function fetchDocs() {
@@ -314,11 +350,22 @@ function DocumentList({ workspaceId }) {
     setDocs(data || []);
   }
   return (
-    <div className="space-y-2">
-      {docs.map(d => <div key={d.id} className="text-sm"><a href={d.file_url} target="_blank" rel="noreferrer" className="text-blue-600">{d.filename}</a></div>)}
-      {docs.length === 0 && <div className="text-xs text-gray-500">No documents yet.</div>}
-    </div>
-  );
+  <div className="space-y-2">
+    {docs.map(d => (
+      <div
+        key={d.id}
+        onClick={() => setSelectedDoc(d)}
+        className={`cursor-pointer text-sm p-2 rounded border ${
+          selectedDoc?.id === d.id ? 'bg-blue-50 border-blue-400' : 'border-gray-200 hover:bg-gray-50'
+        }`}
+      >
+        📄 {d.filename}
+      </div>
+    ))}
+    {docs.length === 0 && <div className="text-xs text-gray-500">No documents yet.</div>}
+  </div>
+);
+
 }
 
 function ProgressWidget({ workspaceId }) {
