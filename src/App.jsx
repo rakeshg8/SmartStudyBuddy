@@ -7,7 +7,7 @@ import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import WorkspaceList from './components/WorkspaceList';
 import WorkspaceView from './components/WorkspaceView';
-
+import ExamMode from "./components/ExamMode";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = React.useContext(AuthContext);
@@ -28,6 +28,8 @@ export default function App() {
                 <Dashboard />
               </ProtectedRoute>
             } />
+            <Route path="/exam-mode/:id" element={<ExamMode />} />
+
             <Route path="/workspaces" element={
               <ProtectedRoute>
                 <WorkspaceList />
