@@ -6,10 +6,14 @@ import cors from "cors";
 dotenv.config();
 const app = express();
 app.use(cors({
-  origin: [ "*"],
+  origin: ["http://localhost:5173", "https://smart-study-buddy-six.vercel.app","https://smart-study-buddy-yt58.vercel.app"],
+  origin: [ "http://localhost:5173",
+    "https://smart-study-buddy-six.vercel.app",
+    "https://smart-study-buddy-yt58.vercel.app" ],
+  methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
-app.options("*", cors()); // ✅ explicitly handle preflight requests
+
 
 app.use(express.json());
 
@@ -22,17 +26,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 app.get("/", (req, res) => res.send("Smart Study Buddy API running ✅"));
 
 app.post("/api/embeddings", async (req, res) => {
-   // ✅ Add CORS headers manually
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-  try {
-  const { workspace_id, quick_study_id, document_id, page_number, chunk_text } = req.body;
+  const { workspace_id, document_id, page_number, chunk_text } = req.body;
   if (!chunk_text) return res.status(400).json({ error: "Missing chunk_text" });
 
   try {
@@ -62,59 +56,30 @@ app.post("/api/embeddings", async (req, res) => {
       return res.status(500).json({ error: "Failed to generate embedding" });
     }
 
-// ✅ 2. Decide which table to insert into
-    let targetTable, insertData;
-
-    if (quick_study_id) {
-      // 👉 Handle Quick Study flow
-      targetTable = "quick_embeddings";
-      insertData = {
-        quick_study_id,
-        document_id,
-        page_number,
-        chunk_text,
-        embedding,
-      };
-    } else if (workspace_id) {
-      // 👉 Handle normal Workspace flow
-      targetTable = "embeddings";
-      insertData = {
-        workspace_id,
-        document_id,
-        page_number,
-        chunk_text,
-        embedding,
-      };
-    } else {
-      return res.status(400).json({ error: "Missing workspace_id or quick_study_id" });
-    }
-
-    // ✅ 3. Insert into Supabase
-    const { error } = await supabase.from(targetTable).insert(insertData);
+    // ✅ 2. Store in Supabase
+    const { error } = await supabase.from("embeddings").insert({
+      document_id,
+      workspace_id,
+      chunk_text,
+      page_number,
+      embedding,
+    });
 
     if (error) {
       console.error("Supabase insert error:", error);
       return res.status(500).json({ error: error.message });
     }
 
-    res.json({ ok: true, table: targetTable });
+    res.json({ ok: true });
   } catch (err) {
     console.error("Embedding handler failed:", err);
     res.status(500).json({ error: err.message });
   }
-    catch (err) {
-    console.error("Embedding handler failed:", err);
-    res.status(500).json({ error: err.message });
-  }
+});
 console.log("OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
 
 // ============ Query API ============
 app.post("/api/query", async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  if (req.method === "OPTIONS") return res.status(204).end();
   const { workspace_id, question } = req.body;
 
   try {
@@ -224,7 +189,4 @@ const scored = rows.map((r) => {
 
 
 // ✅ Vercel export (no app.listen)
-
-// ✅ Vercel export (no app.listen)
 export default app;
-
