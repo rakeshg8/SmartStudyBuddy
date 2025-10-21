@@ -9,7 +9,7 @@ app.use(cors({
   origin: [ "*"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
-
+app.options("*", cors()); // ✅ explicitly handle preflight requests
 
 app.use(express.json());
 
