@@ -22,6 +22,16 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 app.get("/", (req, res) => res.send("Smart Study Buddy API running ✅"));
 
 app.post("/api/embeddings", async (req, res) => {
+   // ✅ Add CORS headers manually
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+  try {
   const { workspace_id, quick_study_id, document_id, page_number, chunk_text } = req.body;
   if (!chunk_text) return res.status(400).json({ error: "Missing chunk_text" });
 
@@ -92,10 +102,19 @@ app.post("/api/embeddings", async (req, res) => {
     console.error("Embedding handler failed:", err);
     res.status(500).json({ error: err.message });
   }
+    catch (err) {
+    console.error("Embedding handler failed:", err);
+    res.status(500).json({ error: err.message });
+  }
 console.log("OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
 
 // ============ Query API ============
 app.post("/api/query", async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  if (req.method === "OPTIONS") return res.status(204).end();
   const { workspace_id, question } = req.body;
 
   try {
