@@ -205,15 +205,8 @@ const scored = rows.map((r) => {
 
 
 // ✅ Vercel export (no app.listen)
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-export default function handler(req, res) {
-  app(req, res);
-}
+// Remove ESM export syntax
+module.exports = app;
 
 
 
