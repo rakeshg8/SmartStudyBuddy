@@ -26,7 +26,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 app.get("/", (req, res) => res.send("Smart Study Buddy API running ✅"));
 
 app.post("/api/embeddings", async (req, res) => {
-  const { workspace_id, document_id, page_number, chunk_text } = req.body;
+  const {workspace_id,
+    quick_study_id,
+    document_id,
+    page_number,
+    chunk_text } = req.body;
   if (!chunk_text) return res.status(400).json({ error: "Missing chunk_text" });
 
   try {
@@ -55,11 +59,21 @@ app.post("/api/embeddings", async (req, res) => {
       console.error("Cohere embedding error:", embJson);
       return res.status(500).json({ error: "Failed to generate embedding" });
     }
-
+ // 2️⃣ Determine target table
+    let tableName, parentIdField;
+    if (workspace_id) {
+      tableName = "embeddings";
+      parentIdField = "workspace_id";
+    } else if (quick_study_id) {
+      tableName = "quick_embeddings";
+      parentIdField = "quick_study_id";
+    } else {
+      return res.status(400).json({ error: "No workspace_id or quick_study_id provided" });
+    }
     // ✅ 2. Store in Supabase
-    const { error } = await supabase.from("embeddings").insert({
+       const { error } = await supabase.from(tableName).insert({
+      [parentIdField]: workspace_id || quick_study_id,
       document_id,
-      workspace_id,
       chunk_text,
       page_number,
       embedding,
@@ -100,6 +114,17 @@ app.post("/api/query", async (req, res) => {
     const embJson = await embResp.json();
     const qVec = embJson.embeddings?.float?.[0] || embJson.embeddings?.[0];
     if (!qVec) throw new Error("Failed to generate question embedding");
+        // 2️⃣ Select correct embedding table
+    let tableName, parentIdField;
+    if (workspace_id) {
+      tableName = "embeddings";
+      parentIdField = "workspace_id";
+    } else if (quick_study_id) {
+      tableName = "quick_embeddings";
+      parentIdField = "quick_study_id";
+    } else {
+      return res.status(400).json({ error: "No workspace_id or quick_study_id provided" });
+    }
 
     // 2️⃣ Fetch embeddings from Supabase
     const { data: rows, error: fetchErr } = await supabase
@@ -163,8 +188,9 @@ const scored = rows.map((r) => {
       llmJson.choices?.[0]?.message?.content || llmJson.choices?.[0]?.text;
 
     // 6️⃣ Save chat history
-    await supabase.from("chats").insert({
-      workspace_id,
+   const chatTable = workspace_id ? "chats" : "quick_chats";
+    await supabase.from(chatTable).insert({
+      [parentIdField]: workspace_id || quick_study_id,
       question,
       answer,
       sources: top.map((t) => ({
