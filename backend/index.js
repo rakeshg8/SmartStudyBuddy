@@ -94,7 +94,7 @@ console.log("OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
 
 // ============ Query API ============
 app.post("/api/query", async (req, res) => {
-  const { workspace_id, question } = req.body;
+  const { workspace_id, quick_study_id,question } = req.body;
 
   try {
     // 1️⃣ Create embedding for the question using Cohere
