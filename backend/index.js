@@ -25,7 +25,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 app.get("/", (req, res) => res.send("Smart Study Buddy API running ✅"));
 
 app.post("/api/embeddings", async (req, res) => {
-  const { workspace_id, document_id, page_number, chunk_text } = req.body;
+  const { workspace_id, quick_study_id, document_id, page_number, chunk_text } = req.body;
   if (!chunk_text) return res.status(400).json({ error: "Missing chunk_text" });
 
   try {
@@ -55,26 +55,46 @@ app.post("/api/embeddings", async (req, res) => {
       return res.status(500).json({ error: "Failed to generate embedding" });
     }
 
-    // ✅ 2. Store in Supabase
-    const { error } = await supabase.from("embeddings").insert({
-      document_id,
-      workspace_id,
-      chunk_text,
-      page_number,
-      embedding,
-    });
+// ✅ 2. Decide which table to insert into
+    let targetTable, insertData;
+
+    if (quick_study_id) {
+      // 👉 Handle Quick Study flow
+      targetTable = "quick_embeddings";
+      insertData = {
+        quick_study_id,
+        document_id,
+        page_number,
+        chunk_text,
+        embedding,
+      };
+    } else if (workspace_id) {
+      // 👉 Handle normal Workspace flow
+      targetTable = "embeddings";
+      insertData = {
+        workspace_id,
+        document_id,
+        page_number,
+        chunk_text,
+        embedding,
+      };
+    } else {
+      return res.status(400).json({ error: "Missing workspace_id or quick_study_id" });
+    }
+
+    // ✅ 3. Insert into Supabase
+    const { error } = await supabase.from(targetTable).insert(insertData);
 
     if (error) {
       console.error("Supabase insert error:", error);
       return res.status(500).json({ error: error.message });
     }
 
-    res.json({ ok: true });
+    res.json({ ok: true, table: targetTable });
   } catch (err) {
     console.error("Embedding handler failed:", err);
     res.status(500).json({ error: err.message });
   }
-});
 console.log("OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
 
 // ============ Query API ============
