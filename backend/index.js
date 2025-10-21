@@ -205,8 +205,7 @@ const scored = rows.map((r) => {
 
 
 // ✅ Vercel export (no app.listen)
-// Remove ESM export syntax
-module.exports = app;
 
-
+// ✅ Vercel export (no app.listen)
+export default app;
 
