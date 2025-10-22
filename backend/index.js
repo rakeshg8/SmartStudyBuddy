@@ -5,14 +5,26 @@ import dotenv from "dotenv";
 import cors from "cors";
 dotenv.config();
 const app = express();
-app.use(cors({
-  origin: ["http://localhost:5173", "https://smart-study-buddy-six.vercel.app","https://smart-study-buddy-yt58.vercel.app"],
-  origin: [ "http://localhost:5173",
-    "https://smart-study-buddy-six.vercel.app",
-    "https://smart-study-buddy-yt58.vercel.app" ],
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://smart-study-buddy-six.vercel.app",
+  "https://smart-study-buddy-yt58.vercel.app"
+];
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("CORS not allowed for this origin"), false);
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+app.options("*", cors());
+
 
 
 app.use(express.json());
