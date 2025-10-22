@@ -207,6 +207,22 @@ const scored = rows.map((r) => {
       }),
     });
 
+// fallback if rate limited
+if (llmResp.status === 429) {
+  console.log("⚠️ Rate limit hit, retrying with fallback model...");
+  llmResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-3.5-turbo", // fallback option
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 700,
+    }),
+  });
+}
     const llmJson = await llmResp.json();
     console.log("OpenRouter LLM response:", llmJson);
     const answer =
