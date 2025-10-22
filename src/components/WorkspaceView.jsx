@@ -5,7 +5,8 @@ import { supabase } from '../supabase/client';
 import { AuthContext } from '../context/AuthContext';
 import { extractTextFromPDF } from '../utils/pdfUtils';
 import { chunkText } from '../utils/chunker';
-
+import { extractTextFromHandwritten } from '../utils/ocrUtils';
+import { useNavigate } from "react-router-dom";
 export default function WorkspaceView() {
   const { id } = useParams(); // workspace id
   const { user } = useContext(AuthContext);
@@ -18,7 +19,7 @@ export default function WorkspaceView() {
   const startTimeRef = useRef(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 const [selectedDoc, setSelectedDoc] = useState(null);
-
+const navigate = useNavigate();
 
   useEffect(() => {
     if (!id) return;
@@ -174,6 +175,66 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
 }
 
 
+async function handleHandwrittenInput(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  setUploadProgress(10);
+
+  let ws = workspace;
+  if (!ws) ws = await fetchWorkspace();
+  if (!ws) return alert('Workspace could not be loaded.');
+  if (!user || ws.user_id !== user.id) {
+    alert('You cannot upload files to a workspace you do not own.');
+    return;
+  }
+
+  // Upload file to Supabase Storage
+  const ext = file.name.split('.').pop();
+  const path = `${id}/handwritten_${Date.now()}.${ext}`;
+  const { data: upData, error: upErr } = await supabase.storage.from('documents').upload(path, file);
+  if (upErr) return alert(upErr.message);
+
+  const publicUrl = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl;
+  setUploadProgress(30);
+
+  // Create DB record
+  const { data: doc, error: docErr } = await supabase.from('documents').insert({
+    workspace_id: id,
+    file_url: publicUrl,
+    filename: file.name,
+    type: 'handwritten'
+  }).select().single();
+
+  if (docErr) return alert(docErr.message);
+  setUploadProgress(50);
+
+  // Extract text using OCR
+  const extractedText = await extractTextFromHandwritten(file);
+  setUploadProgress(70);
+
+  // Split and send to embeddings API
+  const chunks = chunkText(extractedText, 200);
+  let processed = 0;
+  for (const chunk of chunks) {
+    await fetch('https://smart-study-buddy-six.vercel.app/api/embeddings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workspace_id: id,
+        document_id: doc.id,
+        page_number: 1,
+        chunk_text: chunk,
+      }),
+    });
+    processed++;
+    setUploadProgress(Math.round(70 + (processed / chunks.length) * 30));
+  }
+
+  setUploadProgress(100);
+  setTimeout(() => setUploadProgress(0), 2000);
+  alert('Handwritten notes uploaded and processed successfully!');
+}
+
   // Chat ask (calls /api/query)
   async function askQuestion() {
     if (!query.trim()) return;
@@ -219,9 +280,23 @@ for (const p of pages) totalChunks += chunkText(p.text, 200).length;
 
           <div className="mb-6 flex flex-wrap gap-3 justify-center">
             <label className="btn" htmlFor="fileInput">Upload PDF</label>
+            <label className="btn" htmlFor="handwrittenInput">Upload Handwritten Notes</label>
+<input
+  id="handwrittenInput"
+  type="file"
+  accept="application/pdf,image/*"
+  onChange={handleHandwrittenInput}
+  className="hidden"
+/>
+
             <input id="fileInput" type="file" accept="application/pdf" onChange={handleFileInput} className="hidden" />
-            <button className="btn" onClick={() => setActiveTab('chat')}>Chat</button>
-            <button className="btn-ghost" onClick={() => setActiveTab('exam')}>Exam Mode</button>
+            
+            <button
+  className="btn"
+  onClick={() => navigate(`/workspace/${id}/exam`)}
+>
+  Exam Mode
+</button>
             <button className="btn-ghost" onClick={() => setActiveTab('notes')}>Notes Summarizer</button>
             <button className="btn-ghost" onClick={() => setActiveTab('concept')}>Concept Tracker</button>
           </div>

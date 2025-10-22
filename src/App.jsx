@@ -8,7 +8,7 @@ import Dashboard from './components/Dashboard';
 import WorkspaceList from './components/WorkspaceList';
 import WorkspaceView from './components/WorkspaceView';
 import ExamMode from "./components/ExamMode";
-
+import QuickStudyView from "./components/QuickStudyView";
 function ProtectedRoute({ children }) {
   const { user, loading } = React.useContext(AuthContext);
   if (loading) return <div className="p-8">Loading...</div>;
@@ -16,8 +16,9 @@ function ProtectedRoute({ children }) {
 }
 export default function App() {
   return (
+     <BrowserRouter>
     <AuthProvider>
-      <BrowserRouter>
+     
       
         <main className="p-6">
           <Routes>
@@ -29,7 +30,8 @@ export default function App() {
               </ProtectedRoute>
             } />
             <Route path="/exam-mode/:id" element={<ExamMode />} />
-
+            <Route path="/workspace/:id/exam" element={<ExamMode />} />
+            <Route path="/quick-study" element={<QuickStudyView />} />
             <Route path="/workspaces" element={
               <ProtectedRoute>
                 <WorkspaceList />
@@ -42,7 +44,8 @@ export default function App() {
             } />
           </Routes>
         </main>
+        </AuthProvider>
       </BrowserRouter>
-    </AuthProvider>
+    
   );
 }
