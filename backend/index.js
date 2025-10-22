@@ -140,34 +140,24 @@ app.post("/api/query", async (req, res) => {
     const qVec = embJson.embeddings?.float?.[0] || embJson.embeddings?.[0];
     if (!qVec) throw new Error("Failed to generate question embedding");
         // 2️⃣ Select correct embedding table
-    let tableName, parentIdField;
-    if (workspace_id) {
-      tableName = "embeddings";
-      parentIdField = "workspace_id";
-    } else if (quick_study_id) {
-      tableName = "quick_embeddings";
-      parentIdField = "quick_study_id";
-    } else {
-      return res.status(400).json({ error: "No workspace_id or quick_study_id provided" });
-    }
-
-    // 2️⃣ Fetch embeddings from Supabase
- // Determine correct table and column
-const tableName = workspace_id ? "embeddings" : "quick_embeddings";
-const parentIdField = workspace_id ? "workspace_id" : "quick_study_id";
+// 2️⃣ Determine correct table, column, and parent ID
 const parentIdValue = workspace_id || quick_study_id;
-
 if (!parentIdValue) {
   return res.status(400).json({ error: "No workspace_id or quick_study_id provided" });
 }
 
+const tableName = workspace_id ? "embeddings" : "quick_embeddings";
+const parentIdField = workspace_id ? "workspace_id" : "quick_study_id";
+
+// 2️⃣ Fetch embeddings from Supabase
 const { data: rows, error: fetchErr } = await supabase
   .from(tableName)
   .select("id, chunk_text, page_number, embedding")
   .eq(parentIdField, parentIdValue);
 
-    if (fetchErr) throw new Error(fetchErr.message);
-    if (!rows?.length) throw new Error("No embeddings found for workspace");
+if (fetchErr) throw new Error(fetchErr.message);
+if (!rows?.length) throw new Error("No embeddings found for this workspace/study");
+
 
     // 3️⃣ Compute cosine similarity
     const dot = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
