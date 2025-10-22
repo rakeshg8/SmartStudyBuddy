@@ -194,18 +194,20 @@ const scored = rows.map((r) => {
     const prompt = `You are an intelligent study assistant. Use the context below to answer the question accurately and cite relevant pages.\n\nContext:\n${contextText}\n\nQuestion: ${question}\n\nAnswer:`;
 
     // 5️⃣ Call LLM via OpenRouter
-    const llmResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct:free",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 700,
-      }),
-    });
+  
+ // 5️⃣ Call LLM via OpenRouter
+let llmResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+  },
+  body: JSON.stringify({
+    model: "mistralai/mistral-7b-instruct:free",
+    messages: [{ role: "user", content: prompt }],
+    max_tokens: 700,
+  }),
+});
 
 // fallback if rate limited
 if (llmResp.status === 429) {
@@ -217,14 +219,26 @@ if (llmResp.status === 429) {
       Authorization: `Bearer ${OPENROUTER_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "openai/gpt-3.5-turbo", // fallback option
+      model: "openai/gpt-3.5-turbo", // fallback model
       messages: [{ role: "user", content: prompt }],
       max_tokens: 700,
     }),
   });
 }
-    const llmJson = await llmResp.json();
-    console.log("OpenRouter LLM response:", llmJson);
+
+const llmJson = await llmResp.json();
+console.log("OpenRouter LLM response:", llmJson);
+
+// 🧩 Handle OpenRouter errors cleanly
+if (llmJson.error) {
+  console.error("OpenRouter Error:", llmJson.error);
+  return res.status(429).json({
+    error: llmJson.error.message || "OpenRouter rate limit exceeded",
+    type: "rate_limit",
+  });
+}
+
+
     const answer =
       llmJson.choices?.[0]?.message?.content || llmJson.choices?.[0]?.text;
 
