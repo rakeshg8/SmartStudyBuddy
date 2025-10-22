@@ -219,7 +219,7 @@ if (llmResp.status === 429) {
       Authorization: `Bearer ${OPENROUTER_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "deepseek/deepseek-v3.1:free", // fallback model
+      model: "deepseek/deepseek-chat-v3.1:free", // fallback model
       messages: [{ role: "user", content: prompt }],
       max_tokens: 700,
     }),
