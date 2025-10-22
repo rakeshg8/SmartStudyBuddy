@@ -152,10 +152,19 @@ app.post("/api/query", async (req, res) => {
     }
 
     // 2️⃣ Fetch embeddings from Supabase
-    const { data: rows, error: fetchErr } = await supabase
-      .from("embeddings")
-      .select("id, chunk_text, page_number, embedding")
-      .eq("workspace_id", workspace_id);
+ // Determine correct table and column
+const tableName = workspace_id ? "embeddings" : "quick_embeddings";
+const parentIdField = workspace_id ? "workspace_id" : "quick_study_id";
+const parentIdValue = workspace_id || quick_study_id;
+
+if (!parentIdValue) {
+  return res.status(400).json({ error: "No workspace_id or quick_study_id provided" });
+}
+
+const { data: rows, error: fetchErr } = await supabase
+  .from(tableName)
+  .select("id, chunk_text, page_number, embedding")
+  .eq(parentIdField, parentIdValue);
 
     if (fetchErr) throw new Error(fetchErr.message);
     if (!rows?.length) throw new Error("No embeddings found for workspace");
@@ -245,7 +254,7 @@ if (llmJson.error) {
     // 6️⃣ Save chat history
    const chatTable = workspace_id ? "chats" : "quick_chats";
     await supabase.from(chatTable).insert({
-      [parentIdField]: workspace_id || quick_study_id,
+      [parentIdField]: parentIdValue,,
       question,
       answer,
       sources: top.map((t) => ({
