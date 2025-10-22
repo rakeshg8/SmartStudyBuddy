@@ -7,6 +7,7 @@ dotenv.config();
 const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
+   "http://localhost:5174",
   "https://smart-study-buddy.vercel.app",
   "https://smart-study-buddy-six.vercel.app",
   "https://smart-study-buddy-yt58.vercel.app"
