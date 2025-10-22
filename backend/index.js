@@ -244,7 +244,7 @@ if (llmJson.error) {
     // 6️⃣ Save chat history
    const chatTable = workspace_id ? "chats" : "quick_chats";
     await supabase.from(chatTable).insert({
-      [parentIdField]: parentIdValue,,
+      [parentIdField]: parentIdValue,
       question,
       answer,
       sources: top.map((t) => ({
