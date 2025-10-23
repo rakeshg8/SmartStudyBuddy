@@ -25,6 +25,29 @@ const navigate = useNavigate();
     if (!id) return;
     fetchWorkspace();
   }, [id]);
+useEffect(() => {
+  if (!id || !user) return;
+  fetchChatHistory();
+}, [id, user]);
+
+async function fetchChatHistory() {
+  const { data, error } = await supabase
+    .from('chat_history')
+    .select('*')
+    .eq('workspace_id', id)
+    .order('ts', { ascending: true });
+
+  if (!error && data) {
+    setMessages(
+      data.map(d => ({
+        role: d.role,
+        text: d.text,
+        sources: d.sources || null,
+        ts: new Date(d.ts).getTime(),
+      }))
+    );
+  }
+}
 
   useEffect(() => {
     // start reading timer on mount
@@ -241,6 +264,15 @@ async function handleHandwrittenInput(e) {
     const uMsg = { role: 'user', text: query, ts: Date.now() };
     setMessages(prev => [...prev, uMsg]);
     setQuery('');
+      // ✅ Save user message in DB
+  await supabase.from('chat_history').insert({
+    workspace_id: id,
+    user_id: user.id,
+    role: 'user',
+    text: uMsg.text,
+  });
+  try {
+
     // call server
     const res = await fetch('https://smart-study-buddy-six.vercel.app/api/query', {
       method: 'POST',
@@ -250,6 +282,17 @@ async function handleHandwrittenInput(e) {
     const json = await res.json();
     const assistantMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
     setMessages(prev => [...prev, assistantMsg]);
+    await supabase.from('chat_history').insert({
+      workspace_id: id,
+      user_id: user.id,
+      role: 'assistant',
+      text: json.answer,
+      sources: json.sources || null,
+    });
+
+  } catch (err) {
+    console.error("Error asking question:", err);
+  }
   }
 
   if (loading) return <div>Loading workspace...</div>;
@@ -345,6 +388,16 @@ async function handleHandwrittenInput(e) {
               <div className="flex gap-2">
                 <input className="flex-1 p-2 border rounded" value={query} onChange={e => setQuery(e.target.value)} placeholder="Ask about your notes..." />
                 <button onClick={askQuestion} className="btn">Ask</button>
+                <button
+  onClick={async () => {
+    await supabase.from('chat_history').delete().eq('workspace_id', id);
+    setMessages([]);
+  }}
+  className="btn-ghost text-red-400"
+>
+  🗑️ Clear Chat
+</button>
+
               </div>
             </div>
           )}
