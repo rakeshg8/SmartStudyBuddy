@@ -24,12 +24,35 @@ export default function QuickStudyList() {
     else setStudies(data);
   }
 
+  // 🟢 Function to create a new Quick Study with title prompt
+  async function createNewStudy() {
+    const title = prompt("Enter a title for your new Quick Study:");
+    if (!title) return;
+
+    const { data, error } = await supabase
+      .from("quick_studies")
+      .insert({
+        user_id: user.id,
+        title: title.trim(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating study:", error);
+      alert("Failed to create Quick Study.");
+      return;
+    }
+
+    navigate(`/quickstudy/${data.id}`);
+  }
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 p-6">
       <h2 className="text-2xl font-bold mb-4">📚 Your Quick Studies</h2>
+      {/* 🟩 Create New Quick Study */}
       <button
-        className="btn bg-indigo-500 text-white mb-4 px-4 py-2 rounded"
-        onClick={() => navigate("/quickstudy/new")}
+        className="bg-indigo-500 hover:bg-indigo-600 text-white mb-4 px-4 py-2 rounded"
+        onClick={createNewStudy}
       >
         ➕ New Quick Study
       </button>
@@ -48,34 +71,7 @@ export default function QuickStudyList() {
                 {new Date(s.created_at).toLocaleString()}
               </p>
             </div>
-            <button
-  className="btn bg-indigo-500 text-white mb-4 px-4 py-2 rounded"
-  onClick={async () => {
-    const title = prompt("Enter a title for your new Quick Study:");
-    if (!title) return; // cancel if empty
-
-    // create a new row in quick_studies with this title
-    const { data, error } = await supabase
-      .from("quick_studies")
-      .insert({
-        user_id: user.id,
-        title: title.trim(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error creating study:", error);
-      alert("Failed to create Quick Study.");
-      return;
-    }
-
-    // redirect to the new QuickStudy page
-    navigate(`/quickstudy/${data.id}`);
-  }}
->
-  ➕ New Quick Study
-</button>
+            
 
           </div>
         ))}
