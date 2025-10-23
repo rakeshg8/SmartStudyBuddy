@@ -9,6 +9,7 @@ import WorkspaceList from './components/WorkspaceList';
 import WorkspaceView from './components/WorkspaceView';
 import ExamMode from "./components/ExamMode";
 import QuickStudyView from "./components/QuickStudyView";
+import QuickStudyList from "./components/QuickStudyList";
 function ProtectedRoute({ children }) {
   const { user, loading } = React.useContext(AuthContext);
   if (loading) return <div className="p-8">Loading...</div>;
