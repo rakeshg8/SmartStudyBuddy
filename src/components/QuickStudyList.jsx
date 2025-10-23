@@ -49,11 +49,34 @@ export default function QuickStudyList() {
               </p>
             </div>
             <button
-              onClick={() => navigate(`/quickstudy/${s.id}`)}
-              className="bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded text-white"
-            >
-              Open
-            </button>
+  className="btn bg-indigo-500 text-white mb-4 px-4 py-2 rounded"
+  onClick={async () => {
+    const title = prompt("Enter a title for your new Quick Study:");
+    if (!title) return; // cancel if empty
+
+    // create a new row in quick_studies with this title
+    const { data, error } = await supabase
+      .from("quick_studies")
+      .insert({
+        user_id: user.id,
+        title: title.trim(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating study:", error);
+      alert("Failed to create Quick Study.");
+      return;
+    }
+
+    // redirect to the new QuickStudy page
+    navigate(`/quickstudy/${data.id}`);
+  }}
+>
+  ➕ New Quick Study
+</button>
+
           </div>
         ))}
       </div>
