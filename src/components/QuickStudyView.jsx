@@ -1,10 +1,11 @@
-import React, { useState, useContext, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useContext, useEffect } from 'react';
+import { useNavigate, useParams} from 'react-router-dom';
 import { supabase } from '../supabase/client';
 import { AuthContext } from '../context/AuthContext';
 import { extractTextFromPDF } from '../utils/pdfUtils';
 import { chunkText } from '../utils/chunker';
 export default function QuickStudyView() {
+    const { id } = useParams(); // new line
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
@@ -14,6 +15,38 @@ export default function QuickStudyView() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const [quickStudyId, setQuickStudyId] = useState(null);
+
+  // 🟩 Fetch saved chats once quickStudyId is set
+  useEffect(() => {
+    if (!quickStudyId) return;
+    fetchChatHistory();
+  }, [quickStudyId]);
+ useEffect(() => {
+    if (id) {
+      setQuickStudyId(id);
+      fetchChatHistory(id);
+      fetchDocument(id);
+    }
+  }, [id]);
+  async function fetchChatHistory(studyId = quickStudyId) {
+  if (!studyId) return;
+  const { data, error } = await supabase
+    .from('quick_chats')
+    .select('*')
+    .eq('quick_study_id', studyId)
+    .order('ts', { ascending: true });
+  if (error) console.error(error);
+  else setMessages(data);
+}
+
+async function fetchDocument(studyId = quickStudyId) {
+  const { data, error } = await supabase
+    .from('quick_documents')
+    .select('*')
+    .eq('quick_study_id', studyId)
+    .single();
+  if (data) setSelectedDoc(data);
+}
 
   async function handleFileInput(e) {
     const file = e.target.files[0];
@@ -97,13 +130,31 @@ function cleanText(text) {
     setMessages(prev => [...prev, uMsg]);
     setQuery('');
 
+    // 🟩 Save user message
+    await supabase.from('quick_chats').insert({
+      quick_study_id: quickStudyId,
+      role: 'user',
+      text: uMsg.text,
+      ts: uMsg.ts
+    });
     const res = await fetch('https://smart-study-buddy-six.vercel.app/api/query', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ quick_study_id: quickStudyId, question: uMsg.text })
     });
     const json = await res.json();
-    setMessages(prev => [...prev, { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() }]);
+    
+    const aMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
+setMessages(prev => [...prev, aMsg]);
+    
+    // 🟩 Save assistant response
+    await supabase.from('quick_chats').insert({
+      quick_study_id: quickStudyId,
+      role: 'assistant',
+      text: json.answer,
+      sources: json.sources,
+      ts: aMsg.ts
+    });
   }
 
   return (
