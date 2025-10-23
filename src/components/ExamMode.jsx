@@ -31,22 +31,36 @@ export default function ExamMode() {
       });
 
       const j = await resp.json();
+console.log("Quiz API response:", j);
 
       if (!j.answer) throw new Error("No quiz data returned from API.");
 
       // ✅ Parse questions and answers separately
-      const parsedQa = j.answer
-        .split(/\n(?=\d+\.)/) // split by numbered lines
-        .map((q) => {
-          const [questionPart, answerPart] = q.split(/- \\*A\d+:\\/); // split by "- **A1:*" pattern
-          return {
-            question: questionPart?.replace(/\d+\.\s*\\*Q\d+:\\*/, "").trim(),
-            answer: answerPart?.trim(),
-          };
-        })
-        .filter((item) => item.question && item.answer);
+      // ✅ Try multiple patterns to extract Q&A pairs
+let qaText = j.answer || "";
+const qaPattern = /(?:\*\*|#*\s*)?(?:Question|Q)[\s\d.:)*-]*([\s\S]*?)(?:\n|$).*?(?:Answer|A)[:\s-]*([\s\S]*?)(?=\n\s*(?:Q|Question|\*\*|$))/gi;
 
-      setQaList(parsedQa);
+let matches = [];
+let match;
+while ((match = qaPattern.exec(qaText)) !== null) {
+  matches.push({
+    question: match[1].trim(),
+    answer: match[2].trim(),
+  });
+}
+
+if (matches.length === 0) {
+  // fallback split by numbered list if simple pattern fails
+  matches = qaText.split(/\d+\.\s*/).map(line => {
+    const parts = line.split(/Answer[:\-]/i);
+    return parts[0] && parts[1]
+      ? { question: parts[0].trim(), answer: parts[1].trim() }
+      : null;
+  }).filter(Boolean);
+}
+
+setQaList(matches);
+
     } catch (err) {
       console.error("Quiz generation failed:", err);
       setError("Failed to generate quiz. Please try again later.");
