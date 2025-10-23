@@ -29,6 +29,10 @@ export default function App() {
                 <Dashboard />
               </ProtectedRoute>
             } />
+            <Route path="/quickstudy" element={<QuickStudyList />} />
+<Route path="/quickstudy/new" element={<QuickStudyView />} />
+<Route path="/quickstudy/:id" element={<QuickStudyView />} />
+
             <Route path="/exam-mode/:id" element={<ExamMode />} />
             <Route path="/workspace/:id/exam" element={<ExamMode />} />
             <Route path="/quick-study" element={<QuickStudyView />} />
