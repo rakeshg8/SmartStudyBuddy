@@ -84,7 +84,7 @@ return (
                 Upload a PDF and get instant AI assistance without creating a workspace.
               </p>
               <Link
-                to="/quick-study"
+                to="/quickstudy"
                 className="inline-flex items-center gap-2 text-white font-bold hover:gap-4 transition-all"
               >
                 Start Now <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -190,3 +190,4 @@ return (
     </div>
   );
 }
+
