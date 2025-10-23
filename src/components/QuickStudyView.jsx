@@ -9,7 +9,7 @@ export default function QuickStudyView() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
-  
+  const [study, setStudy] = useState(null);
   const [query, setQuery] = useState('');
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -28,6 +28,20 @@ export default function QuickStudyView() {
       fetchDocument(id);
     }
   }, [id]);
+  useEffect(() => {
+  if (id) {
+    fetchStudy();
+    setQuickStudyId(id);
+  }
+}, [id]);
+async function fetchStudy() {
+  const { data, error } = await supabase
+    .from("quick_studies")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (!error) setStudy(data);
+}
   async function fetchChatHistory(studyId = quickStudyId) {
   if (!studyId) return;
   const { data, error } = await supabase
@@ -144,17 +158,17 @@ function cleanText(text) {
     });
     const json = await res.json();
     
- const aMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
+    const aMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
 setMessages(prev => [...prev, aMsg]);
-
-await supabase.from('quick_chats').insert({
-  quick_study_id: quickStudyId,
-  role: 'assistant',
-  text: aMsg.text,
-  sources: aMsg.sources,
-  ts: aMsg.ts
-});
-
+    
+    // 🟩 Save assistant response
+    await supabase.from('quick_chats').insert({
+      quick_study_id: quickStudyId,
+      role: 'assistant',
+      text: json.answer,
+      sources: json.sources,
+      ts: aMsg.ts
+    });
   }
 
   return (
@@ -163,7 +177,10 @@ await supabase.from('quick_chats').insert({
         ← Back to Dashboard
       </button>
     <div className="min-h-screen bg-gray-900 text-gray-200 p-6 flex flex-col items-center">
-      <h2 className="text-2xl mb-4">Quick Study ⚡</h2>
+      <h2 className="text-2xl mb-4">
+  {study?.title ? study.title : "Quick Study ⚡"}
+</h2>
+
 
       {uploadProgress > 0 && (
         <div className="w-full bg-gray-200 rounded mb-3 h-3 overflow-hidden">
@@ -209,4 +226,3 @@ await supabase.from('quick_chats').insert({
     </div>
   );
 }
-
