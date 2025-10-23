@@ -71,7 +71,12 @@ export default function QuickStudyList() {
                 {new Date(s.created_at).toLocaleString()}
               </p>
             </div>
-            
+            <button
+              onClick={() => navigate(`/quickstudy/${s.id}`)}
+              className="bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded text-white"
+            >
+              Open
+            </button>
 
           </div>
         ))}
