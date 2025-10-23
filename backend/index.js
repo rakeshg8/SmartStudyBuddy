@@ -119,7 +119,7 @@ console.log("OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
 
 // ============ Query API ============
 app.post("/api/query", async (req, res) => {
-  const { workspace_id, quick_study_id,question } = req.body;
+  const { workspace_id, quick_study_id, question, mode } = req.body;
 
   try {
     // 1️⃣ Create embedding for the question using Cohere
@@ -185,12 +185,37 @@ const scored = rows.map((r) => {
     scored.sort((a, b) => b.score - a.score);
     const top = scored.slice(0, 6);
 
-    // 4️⃣ Build RAG prompt
-    const contextText = top
-      .map((t) => `Page ${t.page_number}: ${t.chunk_text}`)
-      .join("\n---\n");
+// 4️⃣ Build RAG prompt (adjusted for quiz mode)
+const contextText = top
+  .map((t) => `Page ${t.page_number}: ${t.chunk_text}`)
+  .join("\n---\n");
 
-    const prompt = `You are an intelligent study assistant. Use the context below to answer the question accurately and cite relevant pages.\n\nContext:\n${contextText}\n\nQuestion: ${question}\n\nAnswer:`;
+let prompt;
+
+if (mode === "quiz") {
+  prompt = `
+You are a professional quiz generator.
+
+Using ONLY the context below, create **10 quiz questions** (5 easy, 3 medium, 2 hard).
+Each question MUST be followed by its correct answer.
+Follow this exact format strictly:
+
+Q1: [Question text]
+A1: [Answer text]
+Q2: [Question text]
+A2: [Answer text]
+...
+
+Keep questions clear, concise, and based only on the provided content.
+
+Context:
+${contextText}
+`;
+} else {
+   const prompt = `You are an intelligent study assistant. Use the context below to answer the question accurately and cite relevant pages.\n\nContext:\n${contextText}\n\nQuestion: ${question}\n\nAnswer:`;
+
+
+}
 
     // 5️⃣ Call LLM via OpenRouter
   
