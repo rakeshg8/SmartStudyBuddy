@@ -144,17 +144,17 @@ function cleanText(text) {
     });
     const json = await res.json();
     
-    const aMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
+ const aMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
 setMessages(prev => [...prev, aMsg]);
-    
-    // 🟩 Save assistant response
-    await supabase.from('quick_chats').insert({
-      quick_study_id: quickStudyId,
-      role: 'assistant',
-      text: json.answer,
-      sources: json.sources,
-      ts: aMsg.ts
-    });
+
+await supabase.from('quick_chats').insert({
+  quick_study_id: quickStudyId,
+  role: 'assistant',
+  text: aMsg.text,
+  sources: aMsg.sources,
+  ts: aMsg.ts
+});
+
   }
 
   return (
@@ -209,3 +209,4 @@ setMessages(prev => [...prev, aMsg]);
     </div>
   );
 }
+
