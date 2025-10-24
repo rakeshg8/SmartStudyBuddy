@@ -176,52 +176,95 @@ setMessages(prev => [...prev, aMsg]);
       <button className="btn mb-4" onClick={() => navigate("/")}>
         ← Back to Dashboard
       </button>
-    <div className="min-h-screen bg-gray-900 text-gray-200 p-6 flex flex-col items-center">
+    <div className="min-h-screen bg-gray-900 text-gray-200 p-6 flex flex-col">
+
       <h2 className="text-2xl mb-4">
   {study?.title ? study.title : "Quick Study ⚡"}
 </h2>
 
 
-      {uploadProgress > 0 && (
-        <div className="w-full bg-gray-200 rounded mb-3 h-3 overflow-hidden">
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-        </div>
-      )}
-
-      <label className="btn mb-4" htmlFor="fileInput">Upload PDF</label>
-      <input id="fileInput" type="file" accept="application/pdf" onChange={handleFileInput} className="hidden" />
-
-      {selectedDoc && <iframe src={selectedDoc.file_url} className="w-full h-[400px] border-none mb-4" title="PDF Viewer" />}
-
-     <div className="flex gap-2 w-full max-w-3xl mb-4">
-  <input
-    className="flex-1 p-3 rounded-l-xl border border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-800 text-gray-100 placeholder-gray-400"
-    value={query}
-    onChange={e => setQuery(e.target.value)}
-    placeholder="Ask about your PDF..."
-  />
-  <button
-    className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 rounded-r-xl transition-all duration-200 shadow-md"
-    onClick={askQuestion}
-  >
-    Ask
-  </button>
-</div>
-
-
-      <div className="chat-window mt-4 space-y-3 max-w-2xl w-full overflow-auto" style={{ maxHeight: 300 }}>
-        {messages.map((m, i) => (
-          <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
-            <div className={`inline-block p-3 rounded-2xl max-w-[80%] shadow ${m.role === 'user'
-    ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white text-right'
-    : 'bg-gray-800 text-gray-100 text-left'
-  } break-words`}>
-  <div dangerouslySetInnerHTML={{ __html: (m.text || "").replace(/\n/g,'<br/>') }} />
-</div>
-
-          </div>
-        ))}
+      <div className="flex flex-col lg:flex-row gap-6 w-full mt-4">
+  {/* 📄 Left Section - PDF Viewer & Upload */}
+  <div className="flex-1 bg-gray-800 rounded-2xl p-4 shadow-lg">
+    {uploadProgress > 0 && (
+      <div className="w-full bg-gray-700 rounded mb-3 h-2 overflow-hidden">
+        <div
+          className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded transition-all duration-300"
+          style={{ width: `${uploadProgress}%` }}
+        />
       </div>
+    )}
+
+    <label
+      htmlFor="fileInput"
+      className="cursor-pointer inline-block bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl mb-4 font-medium shadow transition-all"
+    >
+      📤 Upload PDF
+    </label>
+    <input
+      id="fileInput"
+      type="file"
+      accept="application/pdf"
+      onChange={handleFileInput}
+      className="hidden"
+    />
+
+    {selectedDoc ? (
+      <iframe
+        src={selectedDoc.file_url}
+        className="w-full h-[75vh] rounded-xl border-none"
+        title="PDF Viewer"
+      />
+    ) : (
+      <p className="text-gray-400 italic text-center mt-6">
+        Upload a PDF to start your Quick Study.
+      </p>
+    )}
+  </div>
+
+  {/* 💬 Right Section - Chat */}
+  <div className="flex-1 flex flex-col bg-gray-800 rounded-2xl p-4 shadow-lg">
+    <div
+      className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2"
+      style={{ maxHeight: '75vh' }}
+    >
+      {messages.map((m, i) => (
+        <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
+          <div
+            className={`inline-block p-3 rounded-2xl max-w-[80%] shadow-md ${
+              m.role === 'user'
+                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
+                : 'bg-gray-700 text-gray-100'
+            } break-words`}
+          >
+            <div
+              dangerouslySetInnerHTML={{
+                __html: (m.text || '').replace(/\n/g, '<br/>'),
+              }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* Input */}
+    <div className="flex w-full">
+      <input
+        className="flex-1 p-3 rounded-l-xl border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-900 text-gray-100 placeholder-gray-400"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Ask about your PDF..."
+      />
+      <button
+        className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 rounded-r-xl transition-all duration-200 shadow-md"
+        onClick={askQuestion}
+      >
+        Ask
+      </button>
+    </div>
+  </div>
+</div>
+
     </div>
     </div>
   );
