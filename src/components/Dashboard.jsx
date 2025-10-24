@@ -56,14 +56,16 @@ return (
       </header>
 
       {/* Main */}
-      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8">
+     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8 flex flex-col justify-center">
+
         <h2 className="text-2xl font-semibold mb-4 text-white">Welcome Back 👋</h2>
         <p className="text-gray-400 mb-10">
           Upload your study materials, manage your subjects, and get AI-powered help with understanding concepts, tracking progress, and staying motivated.
         </p>
 
         {/* Feature Cards Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center place-items-stretch max-w-6xl mx-auto">
+
           {/* Quick Study */}
           <div
             className="group relative"
@@ -163,3 +165,4 @@ return (
     </div>
   );
 }
+
