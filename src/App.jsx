@@ -10,6 +10,7 @@ import WorkspaceView from './components/WorkspaceView';
 import ExamMode from "./components/ExamMode";
 import QuickStudyView from "./components/QuickStudyView";
 import QuickStudyList from "./components/QuickStudyList";
+import StressMode from "./components/StressMode.jsx"
 function ProtectedRoute({ children }) {
   const { user, loading } = React.useContext(AuthContext);
   if (loading) return <div className="p-8">Loading...</div>;
@@ -33,7 +34,7 @@ export default function App() {
             <Route path="/quickstudy" element={<QuickStudyList />} />
 <Route path="/quickstudy/new" element={<QuickStudyView />} />
 <Route path="/quickstudy/:id" element={<QuickStudyView />} />
-
+<Route path="/stress-mode" element={<StressMode />} />
             <Route path="/exam-mode/:id" element={<ExamMode />} />
             <Route path="/workspace/:id/exam" element={<ExamMode />} />
             <Route path="/quick-study" element={<QuickStudyView />} />
