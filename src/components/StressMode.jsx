@@ -10,7 +10,7 @@ export default function StressMode() {
   const fetchMessage = async () => {
     setLoading(true);
     try {
-      const res = await fetch(${import.meta.env.VITE_BACKEND_URL}/api/stress-mode, {
+      const res = await fetch('https://smart-study-buddy-six.vercel.app/api/stress-mode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mood }),
