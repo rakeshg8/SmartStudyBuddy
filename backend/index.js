@@ -291,7 +291,34 @@ if (llmJson.error) {
     res.status(500).json({ error: err.message });
   }
 });
+// 🧘 Stress Mode - using free APIs
+router.post("/api/stress-mode", async (req, res) => {
+  try {
+    const { mood } = req.body;
+    let apiUrl = "";
+    let key = "message";
 
+    if (mood === "funny") {
+      apiUrl = "https://v2.jokeapi.dev/joke/Any?type=single";
+    } else if (mood === "motivational") {
+      apiUrl = "https://zenquotes.io/api/random";
+    } else if (mood === "silly") {
+      apiUrl = "https://uselessfacts.jsph.pl/random.json?language=en";
+    }
 
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+
+    let message = "";
+    if (mood === "funny") message = data.joke;
+    else if (mood === "motivational") message = data[0]?.q + " — " + data[0]?.a;
+    else if (mood === "silly") message = data.text;
+
+    res.json({ message });
+  } catch (error) {
+    console.error("Error fetching stress mode message:", error);
+    res.status(500).json({ message: "Failed to fetch stress mode message." });
+  }
+});
 // ✅ Vercel export (no app.listen)
 export default app;
