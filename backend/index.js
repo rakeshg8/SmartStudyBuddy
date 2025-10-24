@@ -292,7 +292,7 @@ if (llmJson.error) {
   }
 });
 // 🧘 Stress Mode - using free APIs
-router.post("/api/stress-mode", async (req, res) => {
+app.post("/api/stress-mode", async (req, res) => {
   try {
     const { mood } = req.body;
     let apiUrl = "";
