@@ -34,7 +34,7 @@ export default function App() {
             <Route path="/quickstudy" element={<QuickStudyList />} />
 <Route path="/quickstudy/new" element={<QuickStudyView />} />
 <Route path="/quickstudy/:id" element={<QuickStudyView />} />
-<Route path="/stress-mode" element={<StressMode />} />
+<Route path="/stress-free" element={<StressMode />} />
             <Route path="/exam-mode/:id" element={<ExamMode />} />
             <Route path="/workspace/:id/exam" element={<ExamMode />} />
             <Route path="/quick-study" element={<QuickStudyView />} />
