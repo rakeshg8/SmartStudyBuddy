@@ -8,8 +8,10 @@ export default function Dashboard() {
     const [hoveredCard, setHoveredCard] = useState(null);
 return (
    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8 fixed inset-0 overflow-auto">
+     <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-gray-900 via-transparent to-transparent pointer-events-none z-0"></div>
+
       {/* Header */}
-      <header className="flex justify-between items-center mb-10 border-b border-gray-700 pb-4 relative">
+      <header className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3 sticky top-0 bg-gray-950/70 backdrop-blur-sm z-50 px-2">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
           Smart Study Buddy
         </h1>
@@ -56,10 +58,12 @@ return (
       </header>
 
       {/* Main */}
-     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8 flex flex-col justify-center">
+     <main className="flex flex-col items-center text-gray-200 pt-10 pb-20 px-6">
 
-        <h2 className="text-2xl font-semibold mb-4 text-white">Welcome Back 👋</h2>
-        <p className="text-gray-400 mb-10">
+
+        <h2 className="text-3xl font-bold mb-3 text-white text-center">Welcome Back 👋</h2>
+<p className="text-gray-400 text-center max-w-2xl mb-8">
+
           Upload your study materials, manage your subjects, and get AI-powered help with understanding concepts, tracking progress, and staying motivated.
         </p>
 
@@ -165,4 +169,5 @@ return (
     </div>
   );
 }
+
 
