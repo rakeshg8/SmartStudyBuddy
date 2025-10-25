@@ -8,10 +8,8 @@ export default function Dashboard() {
     const [hoveredCard, setHoveredCard] = useState(null);
 return (
    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8 fixed inset-0 overflow-auto">
-     <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-gray-900 via-transparent to-transparent pointer-events-none z-0"></div>
-
       {/* Header */}
-      <header className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3 sticky top-0 bg-gray-950/70 backdrop-blur-sm z-50 px-2">
+      <header className="flex justify-between items-center mb-10 border-b border-gray-700 pb-4 relative">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
           Smart Study Buddy
         </h1>
@@ -58,18 +56,14 @@ return (
       </header>
 
       {/* Main */}
-     <main className="flex flex-col items-center text-gray-200 pt-10 pb-20 px-6">
-
-
-        <h2 className="text-3xl font-bold mb-3 text-white text-center">Welcome Back 👋</h2>
-<p className="text-gray-400 text-center max-w-2xl mb-8">
-
+      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8 flex flex-col justify-center">
+        <h2 className="text-2xl font-semibold mb-4 text-white">Welcome Back 👋</h2>
+        <p className="text-gray-400 mb-10">
           Upload your study materials, manage your subjects, and get AI-powered help with understanding concepts, tracking progress, and staying motivated.
         </p>
 
         {/* Feature Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center place-items-stretch max-w-6xl mx-auto">
-
           {/* Quick Study */}
           <div
             className="group relative"
@@ -126,8 +120,6 @@ return (
             </div>
           </div>
 
-       
-
           {/* Stress-Free Mode */}
           <div
             className="group relative"
@@ -156,18 +148,52 @@ return (
             </div>
           </div>
         </div>
-      </main>
-      {/* Footer  */}
-{/* Footer - sticky version */}
-<div className="mt-4 py-2 text-center bg-gray-800 text-gray-200 rounded-lg sticky bottom-0">
-  <p className="text-sm italic">
-    "Push yourself, because no one else will do it for you. Every small step counts! 📚✨"
-  </p>
-</div>
+        {/* Footer Section */}
+<footer className="mt-16 w-full bg-gray-950 border-t border-gray-800 text-gray-400 py-8 px-6">
+  <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
+    
+    {/* About Us */}
+    <div>
+      <h3 className="text-white font-semibold mb-3">About Us</h3>
+      <p className="text-gray-400 leading-relaxed">
+        Smart Study Buddy is your AI-powered learning companion — designed to make studying easier, faster, and more effective with personalized tools.
+      </p>
+    </div>
 
+    {/* Contact */}
+    <div>
+      <h3 className="text-white font-semibold mb-3">Contact</h3>
+      <p>Email: <a href="mailto:support@smartstudybuddy.com" className="text-indigo-400 hover:underline">support@smartstudybuddy.com</a></p>
+      <p>Instagram:{" "}
+        <a
+          href="https://instagram.com/smartstudybuddy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-pink-400 hover:underline"
+        >
+          @smartstudybuddy
+        </a>
+      </p>
+    </div>
+
+    {/* Disclaimer */}
+    <div>
+      <h3 className="text-white font-semibold mb-3">Disclaimer</h3>
+      <p className="text-gray-400 leading-relaxed">
+        The information provided by Smart Study Buddy is AI-generated and intended for educational purposes only. Please verify content before use.
+      </p>
+    </div>
+  </div>
+
+  {/* Bottom Line */}
+  <div className="text-center text-gray-500 mt-8 border-t border-gray-800 pt-4 text-xs">
+    © {new Date().getFullYear()} Smart Study Buddy — All Rights Reserved.
+  </div>
+</footer>
+
+      </main>
+      
 
     </div>
   );
 }
-
-
