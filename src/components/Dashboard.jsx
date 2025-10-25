@@ -6,12 +6,27 @@ export default function Dashboard() {
   const { user, signOut } = useContext(AuthContext);
   const [open, setOpen] = useState(false);
     const [hoveredCard, setHoveredCard] = useState(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+React.useEffect(() => {
+  const handleScroll = () => setIsScrolled(window.scrollY > 10);
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+
 return (
    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8 fixed inset-0 overflow-auto">
      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-gray-900 via-transparent to-transparent pointer-events-none z-0"></div>
 
       {/* Header */}
-      <header className="flex justify-between items-center mb-4 border-b border-gray-800/50 sticky top-0 bg-gray-950/40 backdrop-blur-xl shadow-md shadow-black/20 z-50 px-6 py-3 rounded-b-2xl transition-all duration-300">
+      <header
+  className={`flex justify-between items-center mb-4 border-b border-gray-800/50 sticky top-0 z-50 px-6 py-3 rounded-b-2xl transition-all duration-300 backdrop-blur-xl ${
+    isScrolled
+      ? "bg-gray-950/70 shadow-lg shadow-black/30"
+      : "bg-gray-950/30 shadow-sm shadow-black/10"
+  }`}
+>
+
 
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
           Smart Study Buddy
@@ -225,6 +240,7 @@ return (
     </div>
   );
 }
+
 
 
 
