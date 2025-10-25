@@ -11,7 +11,8 @@ return (
      <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-gray-900 via-transparent to-transparent pointer-events-none z-0"></div>
 
       {/* Header */}
-      <header className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3 sticky top-0 bg-gray-950/70 backdrop-blur-sm z-50 px-2">
+      <header className="flex justify-between items-center mb-4 border-b border-gray-800/50 sticky top-0 bg-gray-950/40 backdrop-blur-xl shadow-md shadow-black/20 z-50 px-6 py-3 rounded-b-2xl transition-all duration-300">
+
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
           Smart Study Buddy
         </h1>
@@ -224,5 +225,6 @@ return (
     </div>
   );
 }
+
 
 
