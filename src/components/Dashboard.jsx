@@ -8,8 +8,10 @@ export default function Dashboard() {
     const [hoveredCard, setHoveredCard] = useState(null);
 return (
    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8 fixed inset-0 overflow-auto">
+     <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-gray-900 via-transparent to-transparent pointer-events-none z-0"></div>
+
       {/* Header */}
-      <header className="flex justify-between items-center mb-10 border-b border-gray-700 pb-4 relative">
+      <header className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3 sticky top-0 bg-gray-950/70 backdrop-blur-sm z-50 px-2">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
           Smart Study Buddy
         </h1>
@@ -29,41 +31,50 @@ return (
           </nav>
 
           {/* Profile Icon */}
-          <div className="relative">
-            <button
-              onClick={() => setOpen(!open)}
-              onBlur={() => setTimeout(() => setOpen(false), 150)}
-              className="focus:outline-none"
-            >
-              <FaUserCircle className="text-3xl text-gray-300 hover:text-blue-400 transition-colors" />
-            </button>
+<div className="relative">
+  <button
+    onClick={() => setOpen(!open)}
+    className="focus:outline-none"
+  >
+    <FaUserCircle className="text-3xl text-gray-300 hover:text-blue-400 transition-colors" />
+  </button>
 
-            {open && (
-              <div className="absolute right-0 mt-3 w-44 bg-gray-800 rounded-xl border border-gray-700 shadow-lg py-2 z-50">
-                <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
-                  {user?.email}
-                </div>
-                <button
-                  onClick={signOut}
-                  className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 transition-colors"
-                >
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
+  {open && (
+    <div 
+      className="absolute right-0 mt-3 w-44 bg-gray-800 rounded-xl border border-gray-700 shadow-lg py-2 z-50"
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      <div className="px-4 py-2 text-sm text-gray-300 border-b border-gray-700">
+        {user?.email}
+      </div>
+      <button
+        onClick={() => {
+          setOpen(false);
+          signOut();
+        }}
+        className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 transition-colors"
+      >
+        Sign Out
+      </button>
+    </div>
+  )}
+</div>
         </div>
       </header>
 
       {/* Main */}
-      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-950 text-gray-200 p-8 flex flex-col justify-center">
-        <h2 className="text-2xl font-semibold mb-4 text-white">Welcome Back 👋</h2>
-        <p className="text-gray-400 mb-10">
+     <main className="flex flex-col items-center text-gray-200 pt-10 pb-20 px-6">
+
+
+        <h2 className="text-3xl font-bold mb-3 text-white text-center">Welcome Back 👋</h2>
+<p className="text-gray-400 text-center max-w-2xl mb-8">
+
           Upload your study materials, manage your subjects, and get AI-powered help with understanding concepts, tracking progress, and staying motivated.
         </p>
 
         {/* Feature Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center place-items-stretch max-w-6xl mx-auto">
+
           {/* Quick Study */}
           <div
             className="group relative"
@@ -120,6 +131,8 @@ return (
             </div>
           </div>
 
+       
+
           {/* Stress-Free Mode */}
           <div
             className="group relative"
@@ -148,68 +161,48 @@ return (
             </div>
           </div>
         </div>
-        {/* Footer Section */}
-{/* Footer Section */}
-<footer className="mt-32 w-full bg-gradient-to-br from-gray-950 via-gray-900 to-black text-gray-400 border-t border-gray-800 py-12 px-6">
-  <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 text-sm">
+        <footer className="mt-16 w-full bg-gray-950 border-t border-gray-800 text-gray-400 py-8 px-6">
+  <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
     
     {/* About Us */}
     <div>
       <h3 className="text-white font-semibold mb-3">About Us</h3>
       <p className="text-gray-400 leading-relaxed">
-        <span className="text-indigo-400 font-medium">Smart Study Buddy</span> is your AI-powered learning companion — 
-        designed to make studying easier, faster, and more effective with personalized tools and assistance.
+        Smart Study Buddy is your AI-powered learning companion — designed to make studying easier, faster, and more effective with personalized tools.
       </p>
     </div>
 
     {/* Contact */}
     <div>
       <h3 className="text-white font-semibold mb-3">Contact</h3>
-      <ul className="space-y-1">
-        <li>
-          <span className="text-gray-400">Email: </span>
-          <a href="mailto:support@smartstudybuddy.com" className="text-indigo-400 hover:text-indigo-300 transition">
-            support@smartstudybuddy.com
-          </a>
-        </li>
-        <li>
-          <span className="text-gray-400">Instagram: </span>
-          <a
-            href="https://instagram.com/smartstudybuddy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-pink-400 hover:text-pink-300 transition"
-          >
-            @smartstudybuddy
-          </a>
-        </li>
-      </ul>
+      <p>Email: <a href="mailto:support@smartstudybuddy.com" className="text-indigo-400 hover:underline">support@smartstudybuddy.com</a></p>
+      <p>Instagram:{" "}
+        <a
+          href="https://instagram.com/smartstudybuddy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-pink-400 hover:underline"
+        >
+          @smartstudybuddy
+        </a>
+      </p>
     </div>
 
     {/* Disclaimer */}
     <div>
       <h3 className="text-white font-semibold mb-3">Disclaimer</h3>
       <p className="text-gray-400 leading-relaxed">
-        The information provided by Smart Study Buddy is AI-generated and intended for educational purposes only. 
-        Please verify any content before academic use.
+        The information provided by Smart Study Buddy is AI-generated and intended for educational purposes only. Please verify content before use.
       </p>
     </div>
   </div>
 
-  {/* Divider + Quote */}
-  <div className="mt-12 pt-6 border-t border-gray-800 text-center">
-    <p className="text-gray-300 italic mb-3">
-      “Push yourself, because no one else will do it for you. Every small step counts! 📚✨”
-    </p>
-    <p className="text-gray-500 text-xs">
-      © {new Date().getFullYear()} Smart Study Buddy — All Rights Reserved.
-    </p>
+  {/* Bottom Line */}
+  <div className="text-center text-gray-500 mt-8 border-t border-gray-800 pt-4 text-xs">
+    © {new Date().getFullYear()} Smart Study Buddy — All Rights Reserved.
   </div>
 </footer>
-
-
       </main>
-      
 
     </div>
   );
