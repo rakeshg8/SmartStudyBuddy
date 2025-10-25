@@ -178,7 +178,7 @@ return (
       <p>Email: <a href="mailto:support@smartstudybuddy.com" className="text-indigo-400 hover:underline">support@smartstudybuddy.com</a></p>
       <p>Instagram:{" "}
         <a
-          href="https://instagram.com/smartstudybuddy"
+          href="https://www.instagram.com/abishekamgoth/"
           target="_blank"
           rel="noopener noreferrer"
           className="text-pink-400 hover:underline"
@@ -207,4 +207,5 @@ return (
     </div>
   );
 }
+
 
