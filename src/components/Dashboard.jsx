@@ -161,50 +161,68 @@ return (
             </div>
           </div>
         </div>
-        <footer className="mt-16 w-full bg-gray-950 border-t border-gray-800 text-gray-400 py-8 px-6">
-  <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
+        {/* Footer Section */}
+<footer className="mt-32 w-full bg-gradient-to-br from-gray-950 via-gray-900 to-black text-gray-400 border-t border-gray-800 py-12 px-6">
+  <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 text-sm">
     
     {/* About Us */}
     <div>
       <h3 className="text-white font-semibold mb-3">About Us</h3>
       <p className="text-gray-400 leading-relaxed">
-        Smart Study Buddy is your AI-powered learning companion — designed to make studying easier, faster, and more effective with personalized tools.
+        <span className="text-indigo-400 font-medium">Smart Study Buddy</span> is your AI-powered learning companion — 
+        designed to make studying easier, faster, and more effective with personalized tools and assistance.
       </p>
     </div>
 
     {/* Contact */}
     <div>
       <h3 className="text-white font-semibold mb-3">Contact</h3>
-      <p>Email: <a href="mailto:support@smartstudybuddy.com" className="text-indigo-400 hover:underline">support@smartstudybuddy.com</a></p>
-      <p>Instagram:{" "}
-        <a
-          href="https://www.instagram.com/abishekamgoth/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-pink-400 hover:underline"
-        >
-          @smartstudybuddy
-        </a>
-      </p>
+      <ul className="space-y-1">
+        <li>
+          <span className="text-gray-400">Email: </span>
+          <a href="mailto:support@smartstudybuddy.com" className="text-indigo-400 hover:text-indigo-300 transition">
+            support@smartstudybuddy.com
+          </a>
+        </li>
+        <li>
+          <span className="text-gray-400">Instagram: </span>
+          <a
+            href="https://www.instagram.com/abishekamgoth/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-pink-400 hover:text-pink-300 transition"
+          >
+            @smartstudybuddy
+          </a>
+        </li>
+      </ul>
     </div>
 
     {/* Disclaimer */}
     <div>
       <h3 className="text-white font-semibold mb-3">Disclaimer</h3>
       <p className="text-gray-400 leading-relaxed">
-        The information provided by Smart Study Buddy is AI-generated and intended for educational purposes only. Please verify content before use.
+        The information provided by Smart Study Buddy is AI-generated and intended for educational purposes only. 
+        Please verify any content before academic use.
       </p>
     </div>
   </div>
 
-  {/* Bottom Line */}
-  <div className="text-center text-gray-500 mt-8 border-t border-gray-800 pt-4 text-xs">
-    © {new Date().getFullYear()} Smart Study Buddy — All Rights Reserved.
+  {/* Divider + Quote */}
+  <div className="mt-12 pt-6 border-t border-gray-800 text-center">
+    <p className="text-gray-300 italic mb-3">
+      “Push yourself, because no one else will do it for you. Every small step counts! 📚✨”
+    </p>
+    <p className="text-gray-500 text-xs">
+      © {new Date().getFullYear()} Smart Study Buddy — All Rights Reserved.
+    </p>
   </div>
 </footer>
+
       </main>
 
     </div>
   );
 }
+
 
