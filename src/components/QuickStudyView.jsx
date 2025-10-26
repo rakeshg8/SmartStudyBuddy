@@ -18,7 +18,7 @@ export default function QuickStudyView() {
 
   const [quickStudyId, setQuickStudyId] = useState(null);
 const [activeTab, setActiveTab] = useState('chat'); // chat | exam
-
+  const [loading, setLoading] = useState(false); // new
   // 🟩 Fetch saved chats once quickStudyId is set
   useEffect(() => {
     if (!quickStudyId) return;
@@ -189,6 +189,11 @@ async function handleHandwrittenInput(e) {
     const uMsg = { role: 'user', text: query, ts: Date.now() };
     setMessages(prev => [...prev, uMsg]);
     setQuery('');
+ setLoading(true); // start loading
+
+  // 🟩 Add temporary "Generating..." message
+  const loadingMsg = { role: 'assistant', text: 'Generating, please wait...', ts: Date.now() };
+  setMessages(prev => [...prev, loadingMsg]);
 
     // 🟩 Save user message
     await supabase.from('quick_chats').insert({
