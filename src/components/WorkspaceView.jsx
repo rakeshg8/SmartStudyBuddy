@@ -506,7 +506,6 @@ function ProgressWidget({ workspaceId }) {
   return (
     <div className="text-sm">
       <div>Time spent: {(progress.time_spent_seconds || 0) / 60 >> 0} min</div>
-      <div>Completion: {progress.completion_percent || 0}%</div>
     </div>
   );
 }
@@ -545,3 +544,4 @@ function MotivationMini({ workspaceId }) {
 
   );
 }
+
