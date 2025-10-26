@@ -4,6 +4,8 @@ import { supabase } from '../supabase/client';
 import { AuthContext } from '../context/AuthContext';
 import { extractTextFromPDF } from '../utils/pdfUtils';
 import { chunkText } from '../utils/chunker';
+import { extractTextFromHandwritten } from '../utils/ocrUtils';
+
 export default function QuickStudyView() {
     const { id } = useParams(); // new line
   const navigate = useNavigate();
@@ -43,6 +45,7 @@ async function fetchStudy() {
     .single();
   if (!error) setStudy(data);
 }
+
   async function fetchChatHistory(studyId = quickStudyId) {
   if (!studyId) return;
   const { data, error } = await supabase
@@ -133,6 +136,48 @@ function cleanText(text) {
     }
     setUploadProgress(100);
   }
+async function handleHandwrittenInput(e) {
+  const file = e.target.files[0];
+  if (!file || !user || !quickStudyId) return;
+  setUploadProgress(10);
+
+  // Upload file to Supabase storage
+  const ext = file.name.split('.').pop();
+  const path = `quick_studies/${quickStudyId}/handwritten_${Date.now()}.${ext}`;
+  await supabase.storage.from('documents').upload(path, file);
+  const publicUrl = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl;
+
+  // Create DB record
+  const { data: doc } = await supabase.from('quick_documents').insert({
+    quick_study_id: quickStudyId,
+    file_url: publicUrl,
+    filename: file.name,
+    type: 'handwritten'
+  }).select().single();
+  setSelectedDoc(doc);
+  setUploadProgress(50);
+
+  // Extract text using OCR
+  const extractedText = await extractTextFromHandwritten(file);
+  setUploadProgress(70);
+
+  // Split and send chunks to embeddings
+  const chunks = chunkText(extractedText, 200);
+  for (let i = 0; i < chunks.length; i++) {
+    await fetch('https://smart-study-buddy-six.vercel.app/api/embeddings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quick_study_id: quickStudyId,
+        document_id: doc.id,
+        page_number: 1,
+        chunk_text: chunks[i]
+      })
+    });
+    setUploadProgress(Math.round(70 + ((i+1)/chunks.length)*30));
+  }
+  setUploadProgress(100);
+}
 
   async function askQuestion() {
     if (!quickStudyId) {
@@ -196,19 +241,45 @@ setMessages(prev => [...prev, aMsg]);
       </div>
     )}
 
-    <label
-      htmlFor="fileInput"
-      className="cursor-pointer inline-block bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl mb-4 font-medium shadow transition-all"
-    >
-      📤 Upload PDF
-    </label>
-    <input
-      id="fileInput"
-      type="file"
-      accept="application/pdf"
-      onChange={handleFileInput}
-      className="hidden"
-    />
+    <div className="flex flex-col gap-4 mb-4">
+  <label
+    htmlFor="fileInput"
+    className="cursor-pointer btn"
+  >
+    📤 Upload PDF
+  </label>
+  <input
+    id="fileInput"
+    type="file"
+    accept="application/pdf"
+    onChange={handleFileInput}
+    className="hidden"
+  />
+
+  <label
+    htmlFor="handwrittenInput"
+    className="cursor-pointer btn"
+  >
+    📝 Upload Handwritten Notes
+  </label>
+  <input
+    id="handwrittenInput"
+    type="file"
+    accept="application/pdf,image/*"
+    onChange={handleHandwrittenInput}
+    className="hidden"
+  />
+
+  {uploadProgress > 0 && (
+    <div className="w-full bg-gray-700 rounded h-2 overflow-hidden">
+      <div
+        className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded transition-all duration-300"
+        style={{ width: `${uploadProgress}%` }}
+      />
+    </div>
+  )}
+</div>
+
 
     {selectedDoc ? (
       <iframe
@@ -222,53 +293,84 @@ setMessages(prev => [...prev, aMsg]);
       </p>
     )}
   </div>
-<button className="btn" onClick={() => setActiveTab('exam')}>
-  Exam Mode
-</button>
-{activeTab === 'exam' && (
-  <div>
-    <h3 className="font-semibold mb-2">Exam Mode</h3>
-    <p className="text-sm text-gray-400 mb-3">Generate a timed quiz from your Quick Study.</p>
-    <button className="btn" onClick={async () => {
-      const resp = await fetch('https://smart-study-buddy-six.vercel.app/api/query', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ quick_study_id: quickStudyId, question: '::generate_quiz::', mode: 'quiz' })
-      });
-      const j = await resp.json();
-      setActiveTab('chat'); // show generated quiz in chat
-      setMessages(prev => [...prev, { role:'assistant', text: j.answer, sources: j.sources }]);
-    }}>
-      Generate Quiz
+{/* 💬 Right Section - Chat / Exam */}
+<div className="flex-1 flex flex-col bg-gray-800 rounded-2xl p-4 shadow-lg">
+  {/* Tabs */}
+  <div className="flex gap-2 mb-4">
+    <button
+      className={`btn ${activeTab === 'chat' ? 'bg-indigo-600' : ''}`}
+      onClick={() => setActiveTab('chat')}
+    >
+      Chat
+    </button>
+    <button
+      className={`btn ${activeTab === 'exam' ? 'bg-indigo-600' : ''}`}
+      onClick={() => setActiveTab('exam')}
+    >
+      Exam Mode
     </button>
   </div>
-)}
 
-  {/* 💬 Right Section - Chat */}
-  <div className="flex-1 flex flex-col bg-gray-800 rounded-2xl p-4 shadow-lg">
-    <div
-      className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2"
-      style={{ maxHeight: '75vh' }}
-    >
-      {messages.map((m, i) => (
-        <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
-          <div
-            className={`inline-block p-3 rounded-2xl max-w-[80%] shadow-md ${
-              m.role === 'user'
-                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
-                : 'bg-gray-700 text-gray-100'
-            } break-words`}
-          >
+  {/* Tab Content */}
+  {activeTab === 'chat' && (
+    <div className="flex-1 flex flex-col">
+      {/* Chat messages */}
+      <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2" style={{ maxHeight: '75vh' }}>
+        {messages.map((m, i) => (
+          <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
             <div
-              dangerouslySetInnerHTML={{
-                __html: (m.text || '').replace(/\n/g, '<br/>'),
-              }}
-            />
+              className={`inline-block p-3 rounded-2xl max-w-[80%] shadow-md ${
+                m.role === 'user'
+                  ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white'
+                  : 'bg-gray-700 text-gray-100'
+              } break-words`}
+            >
+              <div dangerouslySetInnerHTML={{ __html: (m.text || '').replace(/\n/g, '<br/>') }} />
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
 
+      {/* Input */}
+      <div className="flex w-full">
+        <input
+          className="flex-1 p-3 rounded-l-xl border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-900 text-gray-100 placeholder-gray-400"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Ask about your PDF..."
+        />
+        <button
+          className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 rounded-r-xl transition-all duration-200 shadow-md"
+          onClick={askQuestion}
+        >
+          Ask
+        </button>
+      </div>
+    </div>
+  )}
+
+  {activeTab === 'exam' && (
+    <div>
+      <h3 className="font-semibold mb-2">Exam Mode</h3>
+      <p className="text-sm text-gray-400 mb-3">Generate a timed quiz from your Quick Study.</p>
+      <button className="btn" onClick={async () => {
+        const resp = await fetch('https://smart-study-buddy-six.vercel.app/api/query', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ quick_study_id: quickStudyId, question: '::generate_quiz::', mode: 'quiz' })
+        });
+        const j = await resp.json();
+        setActiveTab('chat'); // show generated quiz in chat
+        setMessages(prev => [...prev, { role:'assistant', text: j.answer, sources: j.sources }]);
+      }}>
+        Generate Quiz
+      </button>
+    </div>
+  )}
+</div>
+
+
+ 
     {/* Input */}
     <div className="flex w-full">
       <input
