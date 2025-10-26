@@ -8,6 +8,8 @@ export default function QuickStudyList() {
   const { user } = useContext(AuthContext);
   const [studies, setStudies] = useState([]);
   const navigate = useNavigate();
+const [showModal, setShowModal] = useState(false);
+const [newTitle, setNewTitle] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -25,28 +27,29 @@ export default function QuickStudyList() {
   }
 
   // 🟢 Function to create a new Quick Study with title prompt
-  async function createNewStudy() {
-    const title = prompt("Enter a title for your new Quick Study:");
-    if (!title) return;
+  function openCreateModal() {
+  setNewTitle('');
+  setShowModal(true);
+}
+async function saveNewStudy() {
+  if (!newTitle.trim()) return;
 
-    const { data, error } = await supabase
-      .from("quick_studies")
-      .insert({
-        user_id: user.id,
-        title: title.trim(),
-      })
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from("quick_studies")
+    .insert({ user_id: user.id, title: newTitle.trim() })
+    .select()
+    .single();
 
-    if (error) {
-      console.error("Error creating study:", error);
-      alert("Failed to create Quick Study.");
-      return;
-    }
-  
-  
-    navigate(`/quickstudy/${data.id}`);
+  if (error) {
+    console.error("Error creating study:", error);
+    alert("Failed to create Quick Study.");
+    return;
   }
+
+  setShowModal(false);
+  navigate(`/quickstudy/${data.id}`);
+}
+
 
   // 🟥 Function to delete a Quick Study
 async function deleteStudy(id) {
@@ -74,10 +77,40 @@ async function deleteStudy(id) {
       {/* 🟩 Create New Quick Study */}
       <button
         className="bg-indigo-500 hover:bg-indigo-600 text-white mb-4 px-4 py-2 rounded"
-        onClick={createNewStudy}
+        onClick={openCreateModal}
       >
         ➕ New Quick Study
       </button>
+{showModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-gray-800 rounded-xl p-6 w-96 shadow-lg">
+      <h3 className="text-xl font-semibold mb-4 text-white">Create New Quick Study</h3>
+      <input
+        type="text"
+        placeholder="Enter study title..."
+        value={newTitle}
+        onChange={(e) => setNewTitle(e.target.value)}
+         onKeyDown={(e) => { if (e.key === 'Enter') saveNewStudy(); }} // ✅ Press Enter to submit
+  autoFocus // ✅ Automatically focus input when modal opens
+  className="w-full p-3 rounded border border-gray-600 bg-gray-900 text-gray-100 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
+      <div className="flex justify-end gap-2">
+        <button
+          className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white"
+          onClick={() => setShowModal(false)}
+        >
+          Cancel
+        </button>
+        <button
+          className="bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded text-white"
+          onClick={saveNewStudy}
+        >
+          Create
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {studies.length === 0 && <p>No Quick Studies yet.</p>}
 
