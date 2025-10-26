@@ -196,7 +196,18 @@ if (mode === "quiz") {
   prompt = `
 You are a professional quiz generator.
 
-Using ONLY the context below, create **10 quiz questions** (5 easy, 3 medium, 2 hard).
+Generate a quiz based strictly on the core concepts and topics covered in the uploaded workspace material.
+    Avoid administrative or irrelevant questions (e.g., about submission dates, file names, or formatting instructions).
+
+    The quiz should include a balanced mix of:
+    - Easy questions that test key definitions and basic understanding
+    - Medium questions that require short reasoning or explanations
+    - Hard questions that require analysis, comparison, or application of concepts
+
+    Randomly decide the total number of questions (between 8 and 12) 
+    and adjust the difficulty mix dynamically depending on the document content.
+
+
 Each question MUST be followed by its correct answer.
 Follow this exact format strictly:
 
