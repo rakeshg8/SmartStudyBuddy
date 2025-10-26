@@ -74,6 +74,13 @@ async function deleteStudy(id) {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 p-6">
       <h2 className="text-2xl font-bold mb-4">📚 Your Quick Studies</h2>
+       {/* 🔙 Back to Dashboard */}
+<button
+  onClick={() => navigate("/")}
+  className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded mb-4"
+>
+  ← Back to Dashboard
+</button>
       {/* 🟩 Create New Quick Study */}
       <button
         className="bg-indigo-500 hover:bg-indigo-600 text-white mb-4 px-4 py-2 rounded"
