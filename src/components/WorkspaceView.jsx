@@ -20,8 +20,6 @@ export default function WorkspaceView() {
   const [uploadProgress, setUploadProgress] = useState(0);
 const [selectedDoc, setSelectedDoc] = useState(null);
 const navigate = useNavigate();
-const pdfViewerRef = useRef(null);
-const [highlightPage, setHighlightPage] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -283,33 +281,6 @@ async function handleHandwrittenInput(e) {
     });
     const json = await res.json();
     const assistantMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
-    // 🧭 Smart Navigator trigger
-if (json.sources && json.sources.length > 0) {
-  const topSource = json.sources[0]; // take first for now
-  setHighlightPage(topSource.page);
-
-  // Auto-open PDF if not already open
-  if (!selectedDoc) {
-    // Fetch latest doc related to this workspace
-    const { data: docs } = await supabase
-      .from('documents')
-      .select('*')
-      .eq('workspace_id', id)
-      .order('uploaded_at', { ascending: false })
-      .limit(1);
-    if (docs && docs.length > 0) {
-      setSelectedDoc(docs[0]);
-    }
-  }
-
-  // Wait a bit to ensure iframe reloads with correct page
-  setTimeout(() => {
-    if (pdfViewerRef.current) {
-      pdfViewerRef.current.src = `${selectedDoc?.file_url}#page=${topSource.page}`;
-    }
-  }, 1000);
-}
-
     setMessages(prev => [...prev, assistantMsg]);
     await supabase.from('chat_history').insert({
       workspace_id: id,
@@ -382,23 +353,14 @@ if (json.sources && json.sources.length > 0) {
       ✕ Close PDF
     </button>
 
-    {/* Page Navigation (Smart Navigator highlight) */}
-    {highlightPage && (
-      <div className="absolute bottom-2 left-2 bg-gray-900/70 text-white px-3 py-2 rounded-lg text-sm">
-        Showing reference from Page {highlightPage}
-      </div>
-    )}
-
     {/* PDF viewer */}
     <iframe
-      ref={pdfViewerRef}
-      src={`${selectedDoc.file_url}#page=${highlightPage || 1}`}
+      src={selectedDoc.file_url}
       title="PDF Viewer"
       className="w-full h-[500px] border-none"
     />
   </div>
 )}
-
 
 
           {/* Tabs */}
@@ -418,25 +380,7 @@ if (json.sources && json.sources.length > 0) {
   />
 </div>
 
-                    {m.sources && (
-  <div className="mt-2 bg-gray-50 border border-gray-200 p-2 rounded text-xs text-gray-700">
-    <b>Sources:</b>
-    {m.sources.map((s, i) => (
-      <div
-        key={i}
-        className="mt-1 cursor-pointer hover:text-indigo-600 transition"
-        onClick={() => {
-          setHighlightPage(s.page);
-          if (pdfViewerRef.current && selectedDoc)
-            pdfViewerRef.current.src = `${selectedDoc.file_url}#page=${s.page}`;
-        }}
-      >
-        📄 Page {s.page}: <em>{s?.snippet ? s.snippet.slice(0, 80) : "Referenced content"}...</em>
-      </div>
-    ))}
-  </div>
-)}
-
+                    {m.sources && <div className="text-xs text-gray-500 mt-1">Sources: {m.sources.map(s => `Page ${s.page}`).join(', ')}</div>}
                   </div>
                 ))}
               </div>
@@ -601,4 +545,3 @@ function MotivationMini({ workspaceId }) {
 
   );
 }
-
