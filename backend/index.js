@@ -276,13 +276,23 @@ if (llmJson.error) {
 
     const answer =
       llmJson.choices?.[0]?.message?.content || llmJson.choices?.[0]?.text;
+// 🧹 Clean up markdown-style formatting for a professional look
+let cleanAnswer = answer
+  ?.replace(/\*\*/g, "")        // remove **bold**
+  ?.replace(/__|_/g, "")        // remove _italic_
+  ?.replace(/```[\s\S]*?```/g, "") // remove code blocks
+  ?.replace(/`/g, "")           // remove inline code backticks
+  ?.replace(/\/\/.*/g, "")      // remove comment-like lines
+  ?.replace(/#+\s?/g, "")       // remove markdown headers
+  ?.replace(/\n{3,}/g, "\n\n")  // limit multiple newlines
+  ?.trim();
 
     // 6️⃣ Save chat history
    const chatTable = workspace_id ? "chats" : "quick_chats";
     await supabase.from(chatTable).insert({
       [parentIdField]: parentIdValue,
       question,
-      answer,
+      answer: cleanAnswer,
       sources: top.map((t) => ({
         page: t.page_number,
         excerpt: t.chunk_text.slice(0, 200),
@@ -290,7 +300,7 @@ if (llmJson.error) {
     });
 
     res.json({
-      answer,
+       answer: cleanAnswer,
       sources: top.map((t) => ({
         page: t.page_number,
         excerpt: t.chunk_text.slice(0, 200),
