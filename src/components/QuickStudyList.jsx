@@ -73,24 +73,24 @@ async function deleteStudy(id) {
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 p-6">
-     <div className="flex justify-between items-center mb-4">
-  <h2 className="text-2xl font-bold">📚 Your Quick Studies</h2>
-  
-  <div className="flex gap-2">
-    <button
-      className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded"
-      onClick={openCreateModal}
-    >
-      ➕ New Quick Study
-    </button>
+   <h2 className="text-2xl font-bold mb-4">📚 Your Quick Studies</h2>
 
-    <button
-      onClick={() => navigate("/")}
-      className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded"
-    >
-      ← Back to Dashboard
-    </button>
-  </div>
+<div className="flex justify-between items-center mb-6">
+  <button
+    className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded"
+    onClick={openCreateModal}
+  >
+    ➕ New Quick Study
+  </button>
+
+  <button
+    onClick={() => navigate("/")}
+    className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded"
+  >
+    ← Back to Dashboard
+  </button>
+</div>
+
 </div>
 
 {showModal && (
