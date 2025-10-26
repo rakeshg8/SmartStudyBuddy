@@ -43,9 +43,31 @@ export default function QuickStudyList() {
       alert("Failed to create Quick Study.");
       return;
     }
-
+  
+  
     navigate(`/quickstudy/${data.id}`);
   }
+
+  // 🟥 Function to delete a Quick Study
+async function deleteStudy(id) {
+  const confirmDelete = window.confirm("Are you sure you want to delete this Quick Study?");
+  if (!confirmDelete) return;
+
+  const { error } = await supabase
+    .from("quick_studies")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error deleting study:", error);
+    alert("Failed to delete Quick Study.");
+    return;
+  }
+
+  // Remove deleted study from state
+  setStudies(studies.filter((s) => s.id !== id));
+}
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 p-6">
       <h2 className="text-2xl font-bold mb-4">📚 Your Quick Studies</h2>
@@ -77,6 +99,21 @@ export default function QuickStudyList() {
             >
               Open
             </button>
+          <div className="flex gap-2">
+  <button
+    onClick={() => navigate(`/quickstudy/${s.id}`)}
+    className="bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded text-white"
+  >
+    Open
+  </button>
+  <button
+    onClick={() => deleteStudy(s.id)}
+    className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-white"
+  >
+    Delete
+  </button>
+</div>
+  
 
           </div>
         ))}
