@@ -431,7 +431,7 @@ if (json.sources && json.sources.length > 0) {
             pdfViewerRef.current.src = `${selectedDoc.file_url}#page=${s.page}`;
         }}
       >
-        📄 Page {s.page}: <em>{s.snippet.slice(0, 80)}...</em>
+        📄 Page {s.page}: <em>{s?.snippet ? s.snippet.slice(0, 80) : "Referenced content"}...</em>
       </div>
     ))}
   </div>
@@ -601,3 +601,4 @@ function MotivationMini({ workspaceId }) {
 
   );
 }
+
