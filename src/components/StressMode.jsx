@@ -24,9 +24,9 @@ export default function StressMode() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-blue-100 via-purple-100 to-pink-100 p-6">
-      <h2 className="text-3xl font-bold text-indigo-700 mb-2">💬 Stress Mode</h2>
-      <p className="text-gray-600 mb-6 text-center">Talk to AI for motivation or stress relief — stay positive!</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-800 p-6">
+      <h2 className="text-3xl font-bold text-indigo-400 mb-2">💬 Stress Mode</h2>
+      <p className="text-gray-300 mb-6 text-center">Talk to AI for motivation or stress relief — stay positive!</p>
 
       <div className="flex gap-3 mb-4">
         <select
