@@ -209,7 +209,7 @@ async function handleHandwrittenInput(e) {
       body: JSON.stringify({ quick_study_id: quickStudyId, question: uMsg.text })
     });
     const json = await res.json();
-    
+     const aMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
      // remove the loading message and add the real answer
     setMessages(prev => {
       // remove loading
@@ -388,3 +388,4 @@ async function handleHandwrittenInput(e) {
     </div>
   );
 }
+
