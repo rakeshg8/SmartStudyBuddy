@@ -331,21 +331,8 @@ setMessages(prev => [...prev, aMsg]);
         ))}
       </div>
 
-      {/* Input */}
-      <div className="flex w-full">
-        <input
-          className="flex-1 p-3 rounded-l-xl border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-900 text-gray-100 placeholder-gray-400"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask about your PDF..."
-        />
-        <button
-          className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-6 rounded-r-xl transition-all duration-200 shadow-md"
-          onClick={askQuestion}
-        >
-          Ask
-        </button>
-      </div>
+      
+      
     </div>
   )}
 
