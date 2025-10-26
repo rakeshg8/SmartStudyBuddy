@@ -189,11 +189,12 @@ async function handleHandwrittenInput(e) {
     const uMsg = { role: 'user', text: query, ts: Date.now() };
     setMessages(prev => [...prev, uMsg]);
     setQuery('');
- setLoading(true); // start loading
 
-  // 🟩 Add temporary "Generating..." message
-  const loadingMsg = { role: 'assistant', text: 'Generating, please wait...', ts: Date.now() };
+
+  // show loading indicator in chat
+  const loadingMsg = { role: 'assistant', text: 'Generating, please wait...', ts: Date.now(), loading: true };
   setMessages(prev => [...prev, loadingMsg]);
+  setLoading(true);
 
     // 🟩 Save user message
     await supabase.from('quick_chats').insert({
@@ -209,9 +210,13 @@ async function handleHandwrittenInput(e) {
     });
     const json = await res.json();
     
-    const aMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
-setMessages(prev => [...prev, aMsg]);
-    
+     // remove the loading message and add the real answer
+    setMessages(prev => {
+      // remove loading
+      const withoutLoading = prev.filter(m => !m.loading);
+      const aMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
+      return [...withoutLoading, aMsg];
+    });
     // 🟩 Save assistant response
     await supabase.from('quick_chats').insert({
       quick_study_id: quickStudyId,
