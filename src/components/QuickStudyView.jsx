@@ -15,6 +15,7 @@ export default function QuickStudyView() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const [quickStudyId, setQuickStudyId] = useState(null);
+const [activeTab, setActiveTab] = useState('chat'); // chat | exam
 
   // 🟩 Fetch saved chats once quickStudyId is set
   useEffect(() => {
@@ -221,6 +222,27 @@ setMessages(prev => [...prev, aMsg]);
       </p>
     )}
   </div>
+<button className="btn" onClick={() => setActiveTab('exam')}>
+  Exam Mode
+</button>
+{activeTab === 'exam' && (
+  <div>
+    <h3 className="font-semibold mb-2">Exam Mode</h3>
+    <p className="text-sm text-gray-400 mb-3">Generate a timed quiz from your Quick Study.</p>
+    <button className="btn" onClick={async () => {
+      const resp = await fetch('https://smart-study-buddy-six.vercel.app/api/query', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ quick_study_id: quickStudyId, question: '::generate_quiz::', mode: 'quiz' })
+      });
+      const j = await resp.json();
+      setActiveTab('chat'); // show generated quiz in chat
+      setMessages(prev => [...prev, { role:'assistant', text: j.answer, sources: j.sources }]);
+    }}>
+      Generate Quiz
+    </button>
+  </div>
+)}
 
   {/* 💬 Right Section - Chat */}
   <div className="flex-1 flex flex-col bg-gray-800 rounded-2xl p-4 shadow-lg">
