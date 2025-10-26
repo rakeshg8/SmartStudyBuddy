@@ -98,7 +98,8 @@ console.log(await supabase.auth.getSession());
     const { data: doc, error: docErr } = await supabase.from('quick_documents').insert({
       quick_study_id: qs.id,
       file_url: publicUrl,
-      filename: file.name
+      filename: file.name,
+       type: 'pdf'   // ← add this
     }).select().single();
     setSelectedDoc(doc);
     setUploadProgress(50);
@@ -388,4 +389,3 @@ async function handleHandwrittenInput(e) {
     </div>
   );
 }
-
