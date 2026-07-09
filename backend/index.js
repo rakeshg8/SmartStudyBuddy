@@ -5,40 +5,16 @@ import dotenv from "dotenv";
 import cors from "cors";
 dotenv.config();
 const app = express();
-const allowedOrigins = [
-  "http://localhost:5173",
-   "http://localhost:5174",
-  "https://smart-study-buddy.vercel.app",
-  "https://smart-study-buddy-six.vercel.app",
-  "https://smart-study-buddy-yt58.vercel.app"
-];
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://smart-study-buddy-six.vercel.app",
+    "https://smart-study-buddy-yt58.vercel.app"
+  ],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow server-to-server and local tools (like curl, Postman)
-      if (!origin) return callback(null, true);
-
-      // ✅ Allow all Vercel preview URLs dynamically
-      if (
-        allowedOrigins.includes(origin) ||
-        /\.vercel\.app$/.test(origin)
-      ) {
-        return callback(null, true);
-      }
-
-      console.error("❌ CORS blocked for origin:", origin);
-      return callback(new Error("CORS not allowed for this origin"));
-    },
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-
-// ✅ Handle preflight requests
-app.options("*", cors());
 
 app.use(express.json());
 
@@ -51,11 +27,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 app.get("/", (req, res) => res.send("Smart Study Buddy API running ✅"));
 
 app.post("/api/embeddings", async (req, res) => {
-  const {workspace_id,
-    quick_study_id,
-    document_id,
-    page_number,
-    chunk_text } = req.body;
+  const { workspace_id, quick_study_id, document_id, page_number, chunk_text } = req.body;
   if (!chunk_text) return res.status(400).json({ error: "Missing chunk_text" });
 
   try {
@@ -74,35 +46,49 @@ app.post("/api/embeddings", async (req, res) => {
     });
 
     console.log("Cohere response status:", embResp.status);
+    if (!embResp.ok) {
+      let errMsg = "";
+      try {
+        const errJson = await embResp.json();
+        errMsg = errJson.message || JSON.stringify(errJson);
+      } catch {
+        errMsg = await embResp.text();
+      }
+      console.error(`Cohere API error (embeddings): status ${embResp.status}`, errMsg);
+      return res.status(embResp.status).json({ error: `Cohere API error: ${errMsg}` });
+    }
+
     const embJson = await embResp.json();
     console.log("Cohere response JSON:", embJson);
 
-   const embedding = embJson.embeddings?.float?.[0];
-
+    const embedding = embJson.embeddings?.float?.[0];
 
     if (!embedding) {
-      console.error("Cohere embedding error:", embJson);
+      console.error("Cohere embedding error: No float embedding found in", embJson);
       return res.status(500).json({ error: "Failed to generate embedding" });
     }
- // 2️⃣ Determine target table
-    let tableName, parentIdField;
-    if (workspace_id) {
-      tableName = "embeddings";
-      parentIdField = "workspace_id";
-    } else if (quick_study_id) {
-      tableName = "quick_embeddings";
-      parentIdField = "quick_study_id";
-    } else {
-      return res.status(400).json({ error: "No workspace_id or quick_study_id provided" });
-    }
+
     // ✅ 2. Store in Supabase
-       const { error } = await supabase.from(tableName).insert({
-      [parentIdField]: workspace_id || quick_study_id,
-      document_id,
-      chunk_text,
-      page_number,
-      embedding,
-    });
+    let error;
+    if (quick_study_id) {
+      const { error: err } = await supabase.from("quick_embeddings").insert({
+        document_id,
+        quick_study_id,
+        chunk_text,
+        page_number,
+        embedding,
+      });
+      error = err;
+    } else {
+      const { error: err } = await supabase.from("embeddings").insert({
+        document_id,
+        workspace_id,
+        chunk_text,
+        page_number,
+        embedding,
+      });
+      error = err;
+    }
 
     if (error) {
       console.error("Supabase insert error:", error);
@@ -119,7 +105,7 @@ console.log("OPENROUTER_API_KEY:", !!process.env.OPENROUTER_API_KEY);
 
 // ============ Query API ============
 app.post("/api/query", async (req, res) => {
-  const { workspace_id, quick_study_id, question, mode } = req.body;
+  const { workspace_id, quick_study_id, question } = req.body;
 
   try {
     // 1️⃣ Create embedding for the question using Cohere
@@ -136,163 +122,145 @@ app.post("/api/query", async (req, res) => {
       }),
     });
 
+    if (!embResp.ok) {
+      let errMsg = "";
+      try {
+        const errJson = await embResp.json();
+        errMsg = errJson.message || JSON.stringify(errJson);
+      } catch {
+        errMsg = await embResp.text();
+      }
+      console.error(`Cohere API error (query): status ${embResp.status}`, errMsg);
+      return res.status(embResp.status).json({ error: `Cohere API error: ${errMsg}` });
+    }
+
     const embJson = await embResp.json();
     const qVec = embJson.embeddings?.float?.[0] || embJson.embeddings?.[0];
     if (!qVec) throw new Error("Failed to generate question embedding");
-        // 2️⃣ Select correct embedding table
-// 2️⃣ Determine correct table, column, and parent ID
-const parentIdValue = workspace_id || quick_study_id;
-if (!parentIdValue) {
-  return res.status(400).json({ error: "No workspace_id or quick_study_id provided" });
-}
 
-const tableName = workspace_id ? "embeddings" : "quick_embeddings";
-const parentIdField = workspace_id ? "workspace_id" : "quick_study_id";
+    // 2️⃣ Fetch embeddings from Supabase
+    let rows;
+    let fetchErr;
+    if (quick_study_id) {
+      const { data, error } = await supabase
+        .from("quick_embeddings")
+        .select("id, chunk_text, page_number, embedding")
+        .eq("quick_study_id", quick_study_id);
+      rows = data;
+      fetchErr = error;
+    } else {
+      const { data, error } = await supabase
+        .from("embeddings")
+        .select("id, chunk_text, page_number, embedding")
+        .eq("workspace_id", workspace_id);
+      rows = data;
+      fetchErr = error;
+    }
 
-// 2️⃣ Fetch embeddings from Supabase
-const { data: rows, error: fetchErr } = await supabase
-  .from(tableName)
-  .select("id, chunk_text, page_number, embedding")
-  .eq(parentIdField, parentIdValue);
-
-if (fetchErr) throw new Error(fetchErr.message);
-if (!rows?.length) throw new Error("No embeddings found for this workspace/study");
-
+    if (fetchErr) throw new Error(fetchErr.message);
+    if (!rows?.length) throw new Error("No embeddings found for this session");
 
     // 3️⃣ Compute cosine similarity
     const dot = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
     const norm = (a) => Math.sqrt(a.reduce((s, x) => s + x * x, 0));
     const cosine = (a, b) => dot(a, b) / (norm(a) * norm(b) + 1e-10);
 
-   // 3️⃣ Compute similarity
-const scored = rows.map((r) => {
-  // Parse the embedding (string or object) into an array
-  let emb = r.embedding;
-  if (typeof emb === "string") {
-    try {
-      emb = JSON.parse(emb);
-    } catch {
-      // Supabase can return as {float: [...]} if inserted that way
-      emb = emb.replace(/[{}]/g, "").split(",").map(Number);
-    }
-  } else if (emb?.float) {
-    emb = emb.float; // Cohere’s structure
-  }
+    // 3️⃣ Compute similarity
+    const scored = rows.map((r) => {
+      // Parse the embedding (string or object) into an array
+      let emb = r.embedding;
+      if (typeof emb === "string") {
+        try {
+          emb = JSON.parse(emb);
+        } catch {
+          // Supabase can return as {float: [...]} if inserted that way
+          emb = emb.replace(/[{}]/g, "").split(",").map(Number);
+        }
+      } else if (emb?.float) {
+        emb = emb.float; // Cohere’s structure
+      }
 
-  return { ...r, score: cosine(qVec, emb) };
-});
+      return { ...r, score: cosine(qVec, emb) };
+    });
 
     scored.sort((a, b) => b.score - a.score);
     const top = scored.slice(0, 6);
 
-// 4️⃣ Build RAG prompt (adjusted for quiz mode)
-const contextText = top
-  .map((t) => `Page ${t.page_number}: ${t.chunk_text}`)
-  .join("\n---\n");
+    // 4️⃣ Build RAG prompt
+    const contextText = top
+      .map((t) => `Page ${t.page_number}: ${t.chunk_text}`)
+      .join("\n---\n");
 
-let prompt;
+    const prompt = `You are an intelligent study assistant. Use the context below to answer the question accurately and cite relevant pages.\n\nContext:\n${contextText}\n\nQuestion: ${question}\n\nAnswer:`;
 
-if (mode === "quiz") {
-  prompt = `
-You are a professional quiz generator.
+    // 5️⃣ Call LLM via OpenRouter with fallbacks
+    let llmResp;
+    let success = false;
+    let lastError = null;
 
-Generate a quiz based strictly on the core concepts and topics covered in the uploaded workspace material.
-    Avoid administrative or irrelevant questions (e.g., about submission dates, file names, or formatting instructions).
+    const modelsToTry = [
+      "meta-llama/llama-3-8b-instruct:free",
+      "google/gemma-2-9b-it:free",
+      "openrouter/free",
+      "mistralai/mistral-7b-instruct:free"
+    ];
 
-    The quiz should include a balanced mix of:
-    - Easy questions that test key definitions and basic understanding
-    - Medium questions that require short reasoning or explanations
-    - Hard questions that require analysis, comparison, or application of concepts
+    for (const model of modelsToTry) {
+      console.log(`Trying OpenRouter model: ${model}`);
+      try {
+        llmResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 700,
+          }),
+        });
 
-    Randomly decide the total number of questions (between 8 and 12) 
-    and adjust the difficulty mix dynamically depending on the document content.
+        if (llmResp.ok) {
+          success = true;
+          break;
+        } else {
+          let errMsg = "";
+          try {
+            const errJson = await llmResp.json();
+            errMsg = errJson.error?.message || errJson.message || JSON.stringify(errJson);
+          } catch {
+            errMsg = await llmResp.text();
+          }
+          console.warn(`Model ${model} failed: status ${llmResp.status}`, errMsg);
+          lastError = new Error(`Model ${model} returned ${llmResp.status}: ${errMsg}`);
+        }
+      } catch (fetchErr) {
+        console.warn(`Fetch error for model ${model}:`, fetchErr);
+        lastError = fetchErr;
+      }
+    }
 
+    if (!success) {
+      console.error("All OpenRouter models failed.");
+      return res.status(500).json({ error: `OpenRouter API error: ${lastError?.message || "All models failed"}` });
+    }
 
-Each question MUST be followed by its correct answer.
-Follow this exact format strictly:
-
-Q1: [Question text]
-A1: [Answer text]
-Q2: [Question text]
-A2: [Answer text]
-...
-
-Keep questions clear, concise, and based only on the provided content.
-
-Context:
-${contextText}
-`;
-} else {
-   prompt = `You are an intelligent study assistant. Use the context below to answer the question accurately and cite relevant pages.\n\nContext:\n${contextText}\n\nQuestion: ${question}\n\nAnswer:`;
-
-
-}
-
-    // 5️⃣ Call LLM via OpenRouter
-  
- // 5️⃣ Call LLM via OpenRouter
-let llmResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-  },
-  body: JSON.stringify({
-    model: "mistralai/mistral-7b-instruct:free",
-    messages: [{ role: "user", content: prompt }],
-    max_tokens: 700,
-  }),
-});
-
-// fallback if rate limited
-if (llmResp.status === 429) {
-  console.log("⚠️ Rate limit hit, retrying with fallback model...");
-  llmResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-3.5-turbo", // fallback model
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 700,
-    }),
-  });
-}
-
-const llmJson = await llmResp.json();
-console.log("OpenRouter LLM response:", llmJson);
-
-// 🧩 Handle OpenRouter errors cleanly
-if (llmJson.error) {
-  console.error("OpenRouter Error:", llmJson.error);
-  return res.status(429).json({
-    error: llmJson.error.message || "OpenRouter rate limit exceeded",
-    type: "rate_limit",
-  });
-}
-
-
+    const llmJson = await llmResp.json();
+    console.log("OpenRouter LLM response:", llmJson);
     const answer =
       llmJson.choices?.[0]?.message?.content || llmJson.choices?.[0]?.text;
-// 🧹 Clean up markdown-style formatting for a professional look
-let cleanAnswer = answer
-  ?.replace(/\*\*/g, "")        // remove **bold**
-  ?.replace(/__|_/g, "")        // remove _italic_
-  ?.replace(/```[\s\S]*?```/g, "") // remove code blocks
-  ?.replace(/`/g, "")           // remove inline code backticks
-  ?.replace(/\/\/.*/g, "")      // remove comment-like lines
-  ?.replace(/#+\s?/g, "")       // remove markdown headers
-  ?.replace(/\n{3,}/g, "\n\n")  // limit multiple newlines
-  ?.trim();
+
+    if (!answer) {
+      console.error("OpenRouter API returned empty choices:", llmJson);
+      return res.status(500).json({ error: "OpenRouter returned an empty answer." });
+    }
 
     // 6️⃣ Save chat history
-   const chatTable = workspace_id ? "chats" : "quick_chats";
-    await supabase.from(chatTable).insert({
-      [parentIdField]: parentIdValue,
+    await supabase.from("chats").insert({
+      workspace_id,
       question,
-      answer: cleanAnswer,
+      answer,
       sources: top.map((t) => ({
         page: t.page_number,
         excerpt: t.chunk_text.slice(0, 200),
@@ -300,7 +268,7 @@ let cleanAnswer = answer
     });
 
     res.json({
-       answer: cleanAnswer,
+      answer,
       sources: top.map((t) => ({
         page: t.page_number,
         excerpt: t.chunk_text.slice(0, 200),
@@ -312,34 +280,7 @@ let cleanAnswer = answer
     res.status(500).json({ error: err.message });
   }
 });
-// 🧘 Stress Mode - using free APIs
-app.post("/api/stress-mode", async (req, res) => {
-  try {
-    const { mood } = req.body;
-    let apiUrl = "";
-    let key = "message";
 
-    if (mood === "funny") {
-      apiUrl = "https://v2.jokeapi.dev/joke/Any?type=single";
-    } else if (mood === "motivational") {
-      apiUrl = "https://zenquotes.io/api/random";
-    } else if (mood === "silly") {
-      apiUrl = "https://uselessfacts.jsph.pl/random.json?language=en";
-    }
 
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-
-    let message = "";
-    if (mood === "funny") message = data.joke;
-    else if (mood === "motivational") message = data[0]?.q + " — " + data[0]?.a;
-    else if (mood === "silly") message = data.text;
-
-    res.json({ message });
-  } catch (error) {
-    console.error("Error fetching stress mode message:", error);
-    res.status(500).json({ message: "Failed to fetch stress mode message." });
-  }
-});
 // ✅ Vercel export (no app.listen)
 export default app;
