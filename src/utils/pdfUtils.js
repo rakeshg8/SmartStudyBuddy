@@ -5,10 +5,15 @@ import * as pdfjsLib from 'pdfjs-dist';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
-// ✅ Extract text from each page
+// ✅ Extract text from each page (limit to max 40 pages)
 export async function extractTextFromPDF(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  
+  if (pdf.numPages > 40) {
+    throw new Error(`PDF exceeds the page limit of 40 pages. Your file has ${pdf.numPages} pages.`);
+  }
+
   const pages = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {
