@@ -41,7 +41,7 @@ async function fetchChatHistory() {
     setMessages(
       data.map(d => ({
         role: d.role,
-        text: d.text,
+        text: d.text || '',
         sources: d.sources || null,
         ts: new Date(d.ts).getTime(),
       }))
@@ -135,27 +135,51 @@ async function stopTimerAndSave() {
 async function handleFileInput(e) {
   const file = e.target.files[0];
   if (!file) return;
-setUploadProgress(10); // show start progress
+
+  setUploadProgress(10); // show start progress
+
   // Ensure workspace is loaded and owned
   let ws = workspace;
   if (!ws) {
     ws = await fetchWorkspace();
     if (!ws) {
       alert('Workspace could not be loaded. Try again.');
+      setUploadProgress(0);
       return;
     }
   }
   if (!user || ws.user_id !== user.id) {
     alert('You cannot upload files to a workspace you do not own.');
+    setUploadProgress(0);
+    return;
+  }
+
+  // Rate Limit check: max 5 uploads per hour in this workspace
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: uploadCount, error: countErr } = await supabase
+    .from('documents')
+    .select('*', { count: 'exact', head: true })
+    .eq('workspace_id', id)
+    .gte('uploaded_at', oneHourAgo);
+
+  if (countErr) {
+    console.error("Error checking upload rate limit:", countErr);
+  } else if (uploadCount >= 5) {
+    alert("Upload rate limit exceeded. You can upload a maximum of 5 files per hour per workspace.");
+    setUploadProgress(0);
     return;
   }
 
   // 1. upload raw file to Supabase storage
   const ext = file.name.split('.').pop();
   const path = `${id}/${Date.now()}.${ext}`;
-    setUploadProgress(30);
+  setUploadProgress(30);
   const { data: upData, error: upErr } = await supabase.storage.from('documents').upload(path, file);
-  if (upErr) { alert(upErr.message); return; }
+  if (upErr) {
+    alert(upErr.message);
+    setUploadProgress(0);
+    return;
+  }
 
   const publicUrl = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl;
   setUploadProgress(50);
@@ -166,37 +190,48 @@ setUploadProgress(10); // show start progress
     filename: file.name
   }).select().single();
 
-  if (docErr) { console.error('documents insert error', docErr); alert(docErr.message); return; }
-  setUploadProgress(70);
-  // 3. extract text pages and chunk them, then call serverless /api/embeddings for each chunk
-
-  const pages = await extractTextFromPDF(file); // returns [{pageNumber, text}]
-  let totalChunks = 0;
-let processedChunks = 0;
-for (const p of pages) totalChunks += chunkText(p.text, 200).length;
-  for (const p of pages) {
-    const chunks = chunkText(p.text, 200);
-    for (const chunk of chunks) {
-      // call server endpoint to create embedding and store vector
-      await fetch('https://smart-study-buddy-six.vercel.app/api/embeddings', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          workspace_id: id,
-          document_id: doc.id,
-          page_number: p.pageNumber,
-          chunk_text: chunk
-        })
-      }).then(r => r.json()).catch(err => console.error('embedding error', err));
-       processedChunks++;
-    console.log(`Progress: ${Math.round((processedChunks / totalChunks) * 100)}%`);
-    }
+  if (docErr || !doc?.id) {
+    console.error('documents insert error', docErr);
+    alert(docErr?.message || "Failed to create document record.");
+    setUploadProgress(0);
+    return;
   }
-  setUploadProgress(100);
-  setTimeout(() => setUploadProgress(0), 2000);
-  alert('File uploaded and processed (embeddings created).');
-}
+  setUploadProgress(70);
 
+  // 3. extract text pages and chunk them, then call serverless /api/embeddings for each chunk
+  try {
+    const pages = await extractTextFromPDF(file); // returns [{pageNumber, text}]
+    let totalChunks = 0;
+    let processedChunks = 0;
+    for (const p of pages) totalChunks += chunkText(p.text, 200).length;
+    for (const p of pages) {
+      const chunks = chunkText(p.text, 200);
+      for (const chunk of chunks) {
+        // call server endpoint to create embedding and store vector
+        await fetch('https://smart-study-buddy-six.vercel.app/api/embeddings', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            workspace_id: id,
+            document_id: doc.id,
+            page_number: p.pageNumber,
+            chunk_text: chunk
+          })
+        }).then(r => r.json()).catch(err => console.error('embedding error', err));
+        processedChunks++;
+        console.log(`Progress: ${Math.round((processedChunks / totalChunks) * 100)}%`);
+      }
+    }
+    setUploadProgress(100);
+    setTimeout(() => setUploadProgress(0), 2000);
+    alert('File uploaded and processed (embeddings created).');
+  } catch (extractErr) {
+    console.error("Text extraction failed:", extractErr);
+    alert(extractErr.message || "Failed to extract text from PDF.");
+    setUploadProgress(0);
+    await supabase.from('documents').delete().eq('id', doc.id);
+  }
+}
 
 async function handleHandwrittenInput(e) {
   const file = e.target.files[0];
@@ -205,9 +240,29 @@ async function handleHandwrittenInput(e) {
 
   let ws = workspace;
   if (!ws) ws = await fetchWorkspace();
-  if (!ws) return alert('Workspace could not be loaded.');
+  if (!ws) {
+    setUploadProgress(0);
+    return alert('Workspace could not be loaded.');
+  }
   if (!user || ws.user_id !== user.id) {
     alert('You cannot upload files to a workspace you do not own.');
+    setUploadProgress(0);
+    return;
+  }
+
+  // Rate Limit check: max 5 uploads per hour in this workspace
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: uploadCount, error: countErr } = await supabase
+    .from('documents')
+    .select('*', { count: 'exact', head: true })
+    .eq('workspace_id', id)
+    .gte('uploaded_at', oneHourAgo);
+
+  if (countErr) {
+    console.error("Error checking upload rate limit:", countErr);
+  } else if (uploadCount >= 5) {
+    alert("Upload rate limit exceeded. You can upload a maximum of 5 files per hour per workspace.");
+    setUploadProgress(0);
     return;
   }
 
@@ -215,7 +270,11 @@ async function handleHandwrittenInput(e) {
   const ext = file.name.split('.').pop();
   const path = `${id}/handwritten_${Date.now()}.${ext}`;
   const { data: upData, error: upErr } = await supabase.storage.from('documents').upload(path, file);
-  if (upErr) return alert(upErr.message);
+  if (upErr) {
+    alert(upErr.message);
+    setUploadProgress(0);
+    return;
+  }
 
   const publicUrl = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl;
   setUploadProgress(30);
@@ -228,34 +287,45 @@ async function handleHandwrittenInput(e) {
     type: 'handwritten'
   }).select().single();
 
-  if (docErr) return alert(docErr.message);
+  if (docErr || !doc?.id) {
+    alert(docErr?.message || "Failed to create document record.");
+    setUploadProgress(0);
+    return;
+  }
   setUploadProgress(50);
 
   // Extract text using OCR
-  const extractedText = await extractTextFromHandwritten(file);
-  setUploadProgress(70);
+  try {
+    const extractedText = await extractTextFromHandwritten(file);
+    setUploadProgress(70);
 
-  // Split and send to embeddings API
-  const chunks = chunkText(extractedText, 200);
-  let processed = 0;
-  for (const chunk of chunks) {
-    await fetch('https://smart-study-buddy-six.vercel.app/api/embeddings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        workspace_id: id,
-        document_id: doc.id,
-        page_number: 1,
-        chunk_text: chunk,
-      }),
-    });
-    processed++;
-    setUploadProgress(Math.round(70 + (processed / chunks.length) * 30));
+    // Split and send to embeddings API
+    const chunks = chunkText(extractedText, 200);
+    let processed = 0;
+    for (const chunk of chunks) {
+      await fetch('https://smart-study-buddy-six.vercel.app/api/embeddings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspace_id: id,
+          document_id: doc.id,
+          page_number: 1,
+          chunk_text: chunk,
+        }),
+      });
+      processed++;
+      setUploadProgress(Math.round(70 + (processed / chunks.length) * 30));
+    }
+
+    setUploadProgress(100);
+    setTimeout(() => setUploadProgress(0), 2000);
+    alert('Handwritten notes uploaded and processed successfully!');
+  } catch (ocrErr) {
+    console.error("OCR failed:", ocrErr);
+    alert(ocrErr.message || "Failed to extract text from file.");
+    setUploadProgress(0);
+    await supabase.from('documents').delete().eq('id', doc.id);
   }
-
-  setUploadProgress(100);
-  setTimeout(() => setUploadProgress(0), 2000);
-  alert('Handwritten notes uploaded and processed successfully!');
 }
 
   // Chat ask (calls /api/query)
@@ -264,35 +334,50 @@ async function handleHandwrittenInput(e) {
     const uMsg = { role: 'user', text: query, ts: Date.now() };
     setMessages(prev => [...prev, uMsg]);
     setQuery('');
-      // ✅ Save user message in DB
-  await supabase.from('chat_history').insert({
-    workspace_id: id,
-    user_id: user.id,
-    role: 'user',
-    text: uMsg.text,
-  });
-  try {
-
-    // call server
-    const res = await fetch('https://smart-study-buddy-six.vercel.app/api/query', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ workspace_id: id, question: uMsg.text })
-    });
-    const json = await res.json();
-    const assistantMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
-    setMessages(prev => [...prev, assistantMsg]);
+    
+    // ✅ Save user message in DB
     await supabase.from('chat_history').insert({
       workspace_id: id,
       user_id: user.id,
-      role: 'assistant',
-      text: json.answer,
-      sources: json.sources || null,
+      role: 'user',
+      text: uMsg.text,
     });
 
-  } catch (err) {
-    console.error("Error asking question:", err);
-  }
+    try {
+      // call server
+      const res = await fetch('https://smart-study-buddy-six.vercel.app/api/query', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ workspace_id: id, question: uMsg.text })
+      });
+      
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        throw new Error(json.error || `HTTP error ${res.status}`);
+      }
+
+      const assistantMsg = { role: 'assistant', text: json.answer, sources: json.sources, ts: Date.now() };
+      setMessages(prev => [...prev, assistantMsg]);
+      await supabase.from('chat_history').insert({
+        workspace_id: id,
+        user_id: user.id,
+        role: 'assistant',
+        text: json.answer,
+        sources: json.sources || null,
+      });
+
+    } catch (err) {
+      console.error("Error asking question:", err);
+      const errorText = `Sorry, I encountered an error: ${err.message || 'Unknown error'}. Please try again later.`;
+      const errorMsg = { role: 'assistant', text: errorText, ts: Date.now() };
+      setMessages(prev => [...prev, errorMsg]);
+      await supabase.from('chat_history').insert({
+        workspace_id: id,
+        user_id: user.id,
+        role: 'assistant',
+        text: errorText,
+      });
+    }
   }
 
   if (loading) return <div>Loading workspace...</div>;
@@ -376,7 +461,7 @@ async function handleHandwrittenInput(e) {
 >
   <div
     className="text-gray-800"
-    dangerouslySetInnerHTML={{ __html: m.text.replace(/\n/g, '<br/>') }}
+    dangerouslySetInnerHTML={{ __html: (m.text || '').replace(/\n/g, '<br/>') }}
   />
 </div>
 
@@ -506,6 +591,7 @@ function ProgressWidget({ workspaceId }) {
   return (
     <div className="text-sm">
       <div>Time spent: {(progress.time_spent_seconds || 0) / 60 >> 0} min</div>
+      
     </div>
   );
 }
@@ -544,4 +630,3 @@ function MotivationMini({ workspaceId }) {
 
   );
 }
-
