@@ -19,6 +19,11 @@ export async function extractTextFromHandwritten(file) {
   if (file.type === 'application/pdf') {
     const pdfjsLib = await import('pdfjs-dist');
     const pdf = await pdfjsLib.getDocument(URL.createObjectURL(file)).promise;
+    
+    if (pdf.numPages > 40) {
+      throw new Error(`PDF exceeds handwritten page limit of 40 pages. Your file has ${pdf.numPages} pages.`);
+    }
+
     let fullText = '';
 
     for (let i = 1; i <= pdf.numPages; i++) {
